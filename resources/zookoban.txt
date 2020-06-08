@@ -1,0 +1,324 @@
+title sokobanshape
+author damien
+
+( this a comment)
+
+(this is a comment on
+multiple lines
+(with)
+a nested comment)
+
+========
+OBJECTS
+========
+
+Background 
+GREEN   
+
+Wall 
+black
+
+Player 
+Blue  
+
+Button
+purple #FF5555
+.....
+.000.
+.0.0.
+.000.
+.....
+
+Door
+purple
+00000
+00000
+00000
+00000
+00000
+
+OpenDoor
+purple
+0...0
+.....
+.....
+.....
+0...0
+
+Cube
+Orange
+00000
+00000
+00000
+00000
+00000
+
+FallenCube
+darkgreen
+00000
+00000
+00000
+00000
+00000
+
+
+CubeHole
+grey
+00000
+00000
+00000
+00000
+00000
+
+FallenSphere
+darkgreen
+..0..
+.000.
+00000
+.000.
+..0..
+
+Sphere
+Orange
+..0..
+.000.
+00000
+.000.
+..0..
+
+
+SphereHole
+grey
+..0..
+.000.
+00000
+.000.
+..0..
+
+
+FallenStar
+darkgreen
+..0..
+..0..
+00000
+..0..
+..0..
+
+Star
+Orange
+..0..
+..0..
+00000
+..0..
+..0..
+
+
+StarHole
+grey
+..0..
+..0..
+00000
+..0..
+..0..
+
+
+FallenCross
+darkgreen
+0...0
+.0.0.
+..0..
+.0.0.
+0...0
+
+Cross
+orange
+0...0
+.0.0.
+..0..
+.0.0.
+0...0
+
+CrossHole
+grey
+0...0
+.0.0.
+..0..
+.0.0.
+0...0
+
+=======
+LEGEND
+=======
+
+. = Background
+# = Wall
+
+(errors to test detection of aggregates and properties mix)
+(t = Background or Wall)
+(y = t and Wall)
+
+@ = Player
+
+c = Cube
+g = CubeHole
+
+o = Sphere
+i = SphereHole
+
+s = Star
+h = StarHole
+
+x = Cross
++ = CrossHole
+
+b = Button
+d = Door
+p = OpenDoor
+
+Hole = SphereHole or CubeHole or CrossHole or StarHole
+Movable = Cube or Sphere or Star or Cross
+Fallen = FallenCube or FallenSphere or FallenCross or FallenStar
+
+m = o
+
+z = i and o
+
+=======
+SOUNDS
+=======
+
+================
+COLLISIONLAYERS
+================
+
+Background, 
+CubeHole, SphereHole, CrossHole, StarHole Hole
+Fallen, Button, OpenDoor
+Player, Wall, Cube, Sphere, Star, Cross, Door
+
+======
+RULES     
+======     
+
+[ >  Player | Movable] -> [  >  Player | > Movable ]   
+[ >  Movable | Movable] -> [  >  Movable | > Movable ]
+
+late [ Cube CubeHole No Fallen ] -> [ FallenCube CubeHole ]
+
+late [ Sphere CubeHole No Fallen ] -> [ FallenSphere CubeHole ]
+late [ Sphere SphereHole No Fallen ] -> [ FallenSphere SphereHole ]
+
+late [ Star CubeHole No Fallen ] -> [ FallenStar CubeHole ]
+late [ Star SphereHole No Fallen ] -> [ FallenStar SphereHole ]
+late [ Star StarHole No Fallen ] -> [ FallenStar StarHole ]
+
+late [ Cross CubeHole No Fallen ] -> [ FallenCross CubeHole ]
+late [ Cross CrossHole No Fallen ] -> [ FallenCross CrossHole ]
+
+(late [ Button No Player ] [ OpenDoor No Player No Movable ] -> [ Button ] [ Door ]
+late [ Button No Movable ] [ OpenDoor No Player No Movable ] -> [ Button ] [ Door ]
+
+late [ Player Button ] [ Door ] -> [ Player Button ] [ OpenDoor ]
+late [ Movable Button ] [ Door ] -> [ Movable Button ] [ OpenDoor ])
+
+==============
+WINCONDITIONS
+==============
+
+no Movable
+
+=======     
+LEVELS
+=======
+
+(z#####
+#..#@#
+#.o#.#
+#...i#
+######)
+
+
+(#########
+#@#.....#
+#.#.+c..#
+#o#.....#
+#g...xg.#
+###.....#
+#########)
+
+
+######
+##i..#
+###..#
+#.g..#
+#.oc##
+##@.##
+######
+
+message this a test message
+
+#######
+##h...#
+##c#..#
+##g##.#
+#.s@#.#
+#.s...#
+#.h...#
+#######
+
+############
+#.....######
+#@.csshihg.#
+#.....###..#
+####.####o##
+####......##
+############
+
+#######
+#h.#.i#
+#.s...#
+#gogx.#
+#s.c+.#
+#@sioh#
+#######
+
+(Doors)
+#######
+#+b@#i#
+#.x.#o#
+#...d.#
+#######
+
+###########
+#.@.i#....#
+#.b..d..b.#
+#..c.#hs..#
+#..g.#....#
+###o###.###
+###.....###
+###########
+
+#########
+#....#.+#
+#.xb.d..#
+#..@.#..#
+#########
+
+############
+#gih+i..d..#
+#.osxo..#..#
+#.c@b...d..#
+#######.#..#
+#######....#
+############
+
+################
+#...########...#
+#h..d..b.....#.#
+#...#......#...#
+#..s#g.hoi.d.#.#
+#.cb#.#s##.#...#
+#...#.......@..#
+########.......#
+################
+

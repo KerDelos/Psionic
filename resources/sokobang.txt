@@ -1,0 +1,96 @@
+title SokoBANG
+author KerDelos
+
+
+========
+OBJECTS
+========
+
+Background
+Black
+
+Wall
+BROWN
+
+Player
+Orange
+
+Crate
+Yellow
+
+CLeft
+Red
+
+CUp
+Red
+
+CDown
+Red
+
+CRight
+Red
+
+=======
+LEGEND
+=======
+
+mvinfo = CUp or CDown or CLeft or CRight
+. = Background
+# = Wall
+P = Player
+* = Crate
+
+=======
+SOUNDS
+=======
+
+================
+COLLISIONLAYERS
+================
+
+Background
+Player, Wall, Crate
+mvinfo
+
+======
+RULES
+======
+
+Right [CUp Crate] -> [ ^ Crate]
+Right [CDown Crate] -> [ v Crate]
+Right [CLeft Crate] -> [ < Crate]
+Right [CRight Crate] -> [ > Crate]
+
+[ >  Player | Crate ] -> [  >  Player | > Crate  ]
+
+Right [ ^ Crate] -> [ ^ CUp ^ Crate]
+Right [ v Crate] -> [v CDown v Crate]
+Right [ < Crate] -> [ < CLeft < Crate]
+Right [ > Crate] -> [> CRight > Crate]
+
+[> mvinfo > Crate | Wall ] -> [ Crate |Wall]
+[mvinfo] -> [mvinfo] again
+
+
+==============
+WINCONDITIONS
+==============
+
+No Crate
+
+=======
+LEVELS
+=======
+########
+#......#
+#P*..#.#
+#......#
+#...#..#
+########
+
+########
+#......#
+#P*....#
+#......#
+#......#
+########

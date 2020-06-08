@@ -1,0 +1,1 @@
+SConscript('src/SConscript', variant_dir='build/obj', duplicate=0)

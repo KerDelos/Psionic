@@ -1,0 +1,27 @@
+import os
+
+envDebug = Environment(CXX= 'clang++', CXXFLAGS="-std=c++17") #initializing the environment
+
+envDebug['ENV']['TERM'] = os.environ['TERM']
+
+sources = Glob('*.cpp')
+
+envDebug.Append(CPPPATH = ['#include/'])
+envDebug.Append(CXXFLAGS = ' -g')
+envDebug.Append(CXXFLAGS = ' -fno-rtti')
+
+envDebug.Append(CXXFLAGS = ' -Werror')
+
+envDebug.Append(CXXFLAGS = ' -Wall')
+envDebug.Append(CXXFLAGS = ' -Wextra')
+envDebug.Append(CXXFLAGS = ' -Wabi')
+envDebug.Append(CXXFLAGS = ' -Wwrite-strings')
+
+envDebug.Append(CXXFLAGS = ' -Wno-unused-parameter')
+envDebug.Append(CXXFLAGS = ' -Wno-sign-compare')
+
+ps_engine_lib_sources = ["CompiledGame.cpp","Compiler.cpp","PSEngine.cpp","ParsedGame.cpp","Parser.cpp", "PSLogger.cpp", "TextProvider.cpp"]
+ps_engine_lib = envDebug.Library("#build/debug/psengine", ps_engine_lib_sources)
+
+targetDebug = envDebug.Program(target = "#build/debug/interpreter", source = ["main.cpp"], LIBS=['psengine'], LIBPATH='#build/debug/')
+envDebug.Default(targetDebug)
