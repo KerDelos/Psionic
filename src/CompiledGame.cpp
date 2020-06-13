@@ -174,7 +174,7 @@ void CompiledGame::print()
     bool p_print_collision_layers = true;
     bool p_print_rules = true;
     bool p_print_win_conditions = true;
-    bool p_print_levels = false;
+    bool p_print_levels = true;
 
     if(p_print_objects)
     {
@@ -232,13 +232,24 @@ void CompiledGame::print()
         for(const auto& level : levels)
         {
             cout << "width : " << level.width << " height : "<< level.height << "\n";
+            int x = 0;
             for(const auto& cell : level.cells )
             {
                 for(const auto& obj : cell.objects )
                 {
                     cout << obj.lock()->identifier << ", ";
                 }
-                cout << "\n";
+                ++x;
+                if( x == level.width)
+                {
+                    x = 0;
+                    cout << "\n";
+                }
+                else
+                {
+                    cout << "|| ";
+                }
+                
             }
             cout << "\n";
         }

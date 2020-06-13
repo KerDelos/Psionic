@@ -937,9 +937,6 @@ void Compiler::compile_levels(const vector<Token<ParsedGame::LevelsTokenType>>& 
                     //do nothing, means it just empty lines between levels
                     break;
                 }
-                
-                //todo this does not take into account files where eof is on the same line as the last line of a level
-
                 //finished parsing a level
                 current_level.height = current_height;
                 m_compiled_game.levels.push_back(current_level);
@@ -1008,6 +1005,13 @@ void Compiler::compile_levels(const vector<Token<ParsedGame::LevelsTokenType>>& 
             break;
         }
     }
+
+    //Adding the level here in case there was no return token after the last level
+    if(compiling_level_first_line == false)
+    {
+        current_level.height = current_height;
+        m_compiled_game.levels.push_back(current_level);
+    }         
 
     m_logger->log(PSLogger::LogType::Log, m_compiler_log_cat, "Finished Compiling Levels");
 }
