@@ -55,6 +55,25 @@ std::map<string,PSEngine::OperationType, ci_less> PSEngine::to_operation_type ={
     return commands;
  }
 
+
+optional<shared_ptr<CompiledGame::PrimaryObject>> PSEngine::Cell::find_colliding_object(shared_ptr<CompiledGame::PrimaryObject> obj) const
+{
+    set<shared_ptr<CompiledGame::CollisionLayer>> current_col_layers;
+
+    current_col_layers.insert(obj->collision_layer.lock());
+
+    for(auto& pair : objects )
+    {
+        if( current_col_layers.count(pair.first->collision_layer.lock()) != 0)
+        {
+            return optional<shared_ptr<CompiledGame::PrimaryObject>> ( pair.first ) ; //collision was detected;
+        }
+        current_col_layers.insert(pair.first->collision_layer.lock());
+    }
+    
+    return nullopt;
+}
+
 const string PSEngine::m_engine_log_cat = "engine";
 
 PSEngine::PSEngine(shared_ptr<PSLogger> p_logger /*=nullptr*/) : m_logger(p_logger)
@@ -673,9 +692,9 @@ void PSEngine::apply_rule(const CompiledGame::Rule& p_rule)
     }
 }
 
-void PSEngine::apply_delta(const RuleDelta& delta)
+void PSEngine::apply_delta(const RuleDelta& p_delta)
 {
-    for(const auto& cell_delta : delta.cell_deltas)
+    for(const auto& cell_delta : p_delta.cell_deltas)
     {
         Cell* cell =  get_cell_at(cell_delta.x,cell_delta.y);
 
@@ -752,8 +771,119 @@ void PSEngine::apply_delta(const RuleDelta& delta)
 
 bool PSEngine::resolve_movements()
 {  
-    //todo implement advanced movement resolution in case basic fails
-    return basic_movement_resolution();
+    return advanced_movement_resolution();
+}
+
+bool PSEngine::try_to_move_object(Cell& p_containing_cell, shared_ptr<CompiledGame::PrimaryObject> p_type_of_object_moved)
+{
+    std::pair<const shared_ptr<CompiledGame::PrimaryObject>,ObjectMoveType>* pair = nullptr;
+
+    for(auto& current_pair : p_containing_cell.objects )
+    {
+        if(current_pair.first != p_type_of_object_moved)
+        {
+            continue;
+        }
+
+        pair = &current_pair;
+    }
+
+    if(pair != nullptr)
+    {
+        if(pair->second == ObjectMoveType::Stationary || pair->second == ObjectMoveType::Action)
+        {
+            return false;
+        }
+        else
+        {
+            if(pair->second == ObjectMoveType::None)
+            {
+                detect_error("an object move type is set to none, this should never happen");
+                return false;
+            }
+
+            AbsoluteDirection dir = str_to_enum(enum_to_str(pair->second,to_object_move_type).value_or("error"), to_absolute_direction).value_or(AbsoluteDirection::None);
+            if( dir == AbsoluteDirection::None)
+            {
+                detect_error("Could not convert ObjectMoveType to AbsoluteDirection. this should not happen");
+                pair->second = ObjectMoveType::Stationary;
+                return false;
+            }
+
+            if( Cell* dest_cell = get_cell_from(p_containing_cell.x,p_containing_cell.y,1,dir))
+            {
+                shared_ptr<CompiledGame::PrimaryObject> found_object = pair->first;
+
+                //erase it preventively so it does not impede objects moving on this cell
+                //it will be readded if the move is impossible
+                p_containing_cell.objects.erase(pair->first); 
+
+                bool move_permitted = true;
+
+                auto colliding_object = dest_cell->find_colliding_object(found_object);
+                if(colliding_object.has_value())
+                {
+                    move_permitted = false;
+
+                    if(try_to_move_object(*dest_cell, colliding_object.value()))
+                    {
+                        move_permitted = true;
+                    }
+                }
+
+                if(move_permitted)
+                {
+                    dest_cell->objects.insert(make_pair(found_object, ObjectMoveType::Stationary));
+                    return true;
+                }
+                else
+                {
+                    p_containing_cell.objects.insert(make_pair(found_object, ObjectMoveType::Stationary));
+                    return false;
+                }
+                
+            }
+            else
+            {
+                //movement was probably out of bounds, the movement of this object is impossible
+                pair->second = ObjectMoveType::Stationary;
+                return false;
+            }
+        }
+    }
+
+    detect_error("try to move and object but the object was not found in the cell");
+    return false;
+}
+
+bool PSEngine::advanced_movement_resolution()
+{
+    for(Cell& cell : m_current_level.cells)
+    {
+        vector<shared_ptr<CompiledGame::PrimaryObject>> objects_to_move;
+
+        for(auto& pair : cell.objects )
+        {
+            if(pair.second == ObjectMoveType::Action)
+            {
+                pair.second = ObjectMoveType::Stationary;
+            }
+            else if(pair.second != ObjectMoveType::Stationary)
+            {
+                objects_to_move.push_back(pair.first);
+            }
+        }
+
+        for(auto obj : objects_to_move)
+        {
+            if( !try_to_move_object(cell, obj) )
+            {
+                //should return false only if the player can't move ?
+            }  
+        }
+    }
+
+    return true;
 }
 
 bool PSEngine::basic_movement_resolution()
@@ -824,6 +954,7 @@ bool PSEngine::basic_movement_resolution()
 
         if(dest_cell->objects.find(move_info.obj) != dest_cell->objects.end())
         {
+            //moving objects were temporarily removed from the level so only static ones should be detected here
             detect_error("this object already exist in the destination cell, basic movement resolution cannot proceed.");
             return false;
         }

@@ -32,6 +32,8 @@ public:
         int x = -1;
         int y = -1;
         map<shared_ptr<CompiledGame::PrimaryObject>,ObjectMoveType> objects;
+
+        optional<shared_ptr<CompiledGame::PrimaryObject>> find_colliding_object(shared_ptr<CompiledGame::PrimaryObject> obj) const;
     };
 
     struct Level
@@ -173,11 +175,15 @@ protected:
 
     void apply_rule(const CompiledGame::Rule& p_rule);
 
-    void apply_delta(const RuleDelta& delta);
+    void apply_delta(const RuleDelta& p_delta);
 
     bool resolve_movements();
 
     bool basic_movement_resolution();
+
+    bool try_to_move_object(Cell& p_containing_cell, shared_ptr<CompiledGame::PrimaryObject> p_type_of_object_moved);
+
+    bool advanced_movement_resolution();
 
     bool check_win_conditions();
     bool check_win_condition(const CompiledGame::WinCondition& p_win_condition);

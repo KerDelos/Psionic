@@ -16,6 +16,7 @@ envDebug.Append(CXXFLAGS = ' -Wall')
 envDebug.Append(CXXFLAGS = ' -Wextra')
 envDebug.Append(CXXFLAGS = ' -Wabi')
 envDebug.Append(CXXFLAGS = ' -Wwrite-strings')
+envDebug.Append(CXXFLAGS = ' -D_GLIBCXX_DEBUG')
 
 envDebug.Append(CXXFLAGS = ' -Wno-unused-parameter')
 envDebug.Append(CXXFLAGS = ' -Wno-sign-compare')
