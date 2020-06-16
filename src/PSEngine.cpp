@@ -229,13 +229,14 @@ void PSEngine::next_turn()
 
 bool PSEngine::next_subturn()
 {
+    log("--- Subturn start ---");
     Level last_subturn_save = m_current_level;
 
     m_turn_history.push_back(SubturnHistory());
 
     for(const auto& rule : m_compiled_game.rules)
     {
-        log("Applying rule : " + rule.to_string());
+        log("Processing rule : " + rule.to_string());
         apply_rule(rule);
     }
 
@@ -249,10 +250,10 @@ bool PSEngine::next_subturn()
     else
     {
         log("movement resolved");
-
+        
         for(const auto& rule : m_compiled_game.late_rules)
         {
-            log("Applying late rule : " + rule.to_string());
+            log("Processing late rule : " + rule.to_string());
             apply_rule(rule);
         }
 
@@ -426,7 +427,10 @@ bool PSEngine::does_rule_cell_matches_cell(const CompiledGame::RuleCell& p_rule_
 
         if(rule_pair.second == CompiledGame::EntityRuleInfo::No)
         {
-            return !found_object;
+            if(found_object)
+            {
+                return false;
+            }
         }
         else if(!found_object)
         {
@@ -487,7 +491,15 @@ PSEngine::RuleDelta PSEngine::compute_rule_delta(const CompiledGame::Rule& p_rul
             {
                 if(match_content_pair.second == CompiledGame::EntityRuleInfo::No)
                 {
-                    cell_delta.deltas.push_back(ObjectDelta(matched_primary_obj,ObjectDeltaType::Appear));
+                    if(shared_ptr<CompiledGame::PrimaryObject> appearing_obj = match_content_pair.first->as_primary_object())
+                    {
+                        cell_delta.deltas.push_back(ObjectDelta(appearing_obj,ObjectDeltaType::Appear));
+                    }
+                    else
+                    {
+                        //todo support aggregate objects ?
+                        detect_error("Trying to make a non primary object appear. This is ambiguous.");
+                    }
                 }
                 else if(result_equivalent_pair->second == CompiledGame::EntityRuleInfo::No)
                 {
@@ -675,7 +687,7 @@ void PSEngine::apply_rule(const CompiledGame::Rule& p_rule)
 
             if(match_success)
             {
-                log("matched something dir : " + enum_to_str(rule_app_dir, to_absolute_direction).value_or("error"));
+                log("Matched the rule at ("+to_string(cell.x)+","+to_string(cell.y)+") "+ enum_to_str(rule_app_dir, to_absolute_direction).value_or("error"));
 
                 RuleDelta rule_delta = compute_rule_delta(p_rule,cell, rule_app_dir);
                 deltas.push_back(rule_delta);
