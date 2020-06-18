@@ -129,6 +129,7 @@ public:
         {};
     };
 
+    static std::map<string,ObjectDeltaType, ci_less> to_object_delta_type;
     static std::map<string,OperationType, ci_less> to_operation_type;
     static std::map<string,AbsoluteDirection, ci_less> to_absolute_direction;
     static std::map<string,InputType, ci_less> to_input_type;
@@ -216,6 +217,7 @@ protected:
 
     vector<Operation> m_operation_history;
 
+    //todo subturnHistory does not contain information about mouvement that happened or failed during the subturn!!
     vector<SubturnHistory> m_turn_history;
 
     InputType m_last_input = InputType::None;

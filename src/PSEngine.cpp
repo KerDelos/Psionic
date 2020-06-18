@@ -43,17 +43,27 @@ std::map<string,PSEngine::OperationType, ci_less> PSEngine::to_operation_type ={
     {"LoadGame", OperationType::LoadGame},
 };
 
+std::map<string,PSEngine::ObjectDeltaType, ci_less> PSEngine::to_object_delta_type={
+    {"None", ObjectDeltaType::None},
+	{"Appear", ObjectDeltaType::Appear},
+	{"Disappear", ObjectDeltaType::Disappear},
+	{"Up", ObjectDeltaType::Up},
+	{"Down", ObjectDeltaType::Down},
+	{"Left", ObjectDeltaType::Left},
+    {"Right", ObjectDeltaType::Right},
+    {"Stationary", ObjectDeltaType::Stationary},
+    {"Action", ObjectDeltaType::Action},
+};
 
-
- vector<CompiledGame::CommandType> PSEngine::SubturnHistory::gather_all_subturn_commands() const
- {
+vector<CompiledGame::CommandType> PSEngine::SubturnHistory::gather_all_subturn_commands() const
+{
     vector<CompiledGame::CommandType> commands;
     for( const auto& step : steps)
     {
         commands.insert(commands.end(), step.rule_applied.commands.begin(), step.rule_applied.commands.end());
     }
     return commands;
- }
+}
 
 
 optional<shared_ptr<CompiledGame::PrimaryObject>> PSEngine::Cell::find_colliding_object(shared_ptr<CompiledGame::PrimaryObject> obj) const
