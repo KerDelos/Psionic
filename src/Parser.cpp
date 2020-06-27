@@ -508,6 +508,7 @@ void Parser::parse_rules()
 						m_text_provider->advance();
 						m_parsed_game.rules_tokens.push_back(Token<ParsedGame::RulesTokenType>(ParsedGame::RulesTokenType::Dots,"",m_line_counter));
 					}
+					break;
 				default:
 					parse_rules_word();
 				break;
