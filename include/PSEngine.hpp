@@ -105,8 +105,25 @@ public:
         }
     };
 
-    struct RuleDelta
+    struct MovementDelta
     {
+        int origin_x = -1;
+        int origin_y = -1;
+        int destination_x = -1;
+        int destination_y = -1;
+        AbsoluteDirection move_direction;
+        shared_ptr<CompiledGame::PrimaryObject> object;
+        //bool moved_successfully = false; //todo also register failed movements
+    };
+
+    struct RuleDelta //todo this class should probably be renamed since it can now hold movement deltas
+    {
+        bool is_movement_resolution = false;
+
+        //params for a movement resolution delta
+        vector<MovementDelta> movement_deltas;
+
+        //params for a rule delta
         CompiledGame::Rule rule_applied;
         vector<RuleApplicationDelta> rule_application_deltas;
     };
@@ -206,7 +223,7 @@ protected:
 
     bool basic_movement_resolution();
 
-    bool try_to_move_object(Cell& p_containing_cell, shared_ptr<CompiledGame::PrimaryObject> p_type_of_object_moved);
+    bool try_to_move_object(Cell& p_containing_cell, shared_ptr<CompiledGame::PrimaryObject> p_type_of_object_moved, RuleDelta& p_movement_deltas);
 
     bool advanced_movement_resolution();
 

@@ -831,7 +831,7 @@ bool PSEngine::resolve_movements()
     return advanced_movement_resolution();
 }
 
-bool PSEngine::try_to_move_object(Cell& p_containing_cell, shared_ptr<CompiledGame::PrimaryObject> p_type_of_object_moved)
+bool PSEngine::try_to_move_object(Cell& p_containing_cell, shared_ptr<CompiledGame::PrimaryObject> p_type_of_object_moved,RuleDelta& p_movement_deltas)
 {
     std::pair<const shared_ptr<CompiledGame::PrimaryObject>,ObjectMoveType>* pair = nullptr;
 
@@ -882,7 +882,7 @@ bool PSEngine::try_to_move_object(Cell& p_containing_cell, shared_ptr<CompiledGa
                 {
                     move_permitted = false;
 
-                    if(try_to_move_object(*dest_cell, colliding_object.value()))
+                    if(try_to_move_object(*dest_cell, colliding_object.value(), p_movement_deltas))
                     {
                         move_permitted = true;
                     }
@@ -890,6 +890,17 @@ bool PSEngine::try_to_move_object(Cell& p_containing_cell, shared_ptr<CompiledGa
 
                 if(move_permitted)
                 {
+                    MovementDelta move_delta;
+                    move_delta.origin_x = p_containing_cell.x;
+                    move_delta.origin_y = p_containing_cell.y;
+                    move_delta.destination_x = dest_cell->x;
+                    move_delta.destination_y = dest_cell->y;
+                    move_delta.move_direction = dir;
+                    //move_delta.moved_successfully = true;
+                    move_delta.object = found_object;
+
+                    p_movement_deltas.movement_deltas.push_back(move_delta);
+
                     dest_cell->objects.insert(make_pair(found_object, ObjectMoveType::Stationary));
                     return true;
                 }
@@ -915,6 +926,10 @@ bool PSEngine::try_to_move_object(Cell& p_containing_cell, shared_ptr<CompiledGa
 
 bool PSEngine::advanced_movement_resolution()
 {
+    RuleDelta movement_deltas;
+    movement_deltas.is_movement_resolution = true;
+
+
     for(Cell& cell : m_current_level.cells)
     {
         vector<shared_ptr<CompiledGame::PrimaryObject>> objects_to_move;
@@ -923,6 +938,7 @@ bool PSEngine::advanced_movement_resolution()
         {
             if(pair.second == ObjectMoveType::Action)
             {
+                //todo do we consider Action as a movement in the turn history ?
                 pair.second = ObjectMoveType::Stationary;
             }
             else if(pair.second != ObjectMoveType::Stationary)
@@ -933,12 +949,14 @@ bool PSEngine::advanced_movement_resolution()
 
         for(auto obj : objects_to_move)
         {
-            if( !try_to_move_object(cell, obj) )
+            if( !try_to_move_object(cell, obj, movement_deltas) )
             {
                 //should return false only if the player can't move ?
             }  
         }
     }
+
+    m_turn_history.back().steps.push_back(movement_deltas);
 
     return true;
 }
@@ -1468,17 +1486,32 @@ void PSEngine::print_subturns_history() const
         result += "--- Subturn " + to_string(i+1) + "/" + to_string(m_turn_history.size()) + "---\n";
         for(const auto& rule_delta : subturn.steps)
         {
-            result += rule_delta.rule_applied.to_string()+"\n";
-            for(const auto& rule_app_delta : rule_delta.rule_application_deltas)
+            if(rule_delta.is_movement_resolution)
             {
-                result += "\t" + to_string(rule_app_delta.origin_x)+","+to_string(rule_app_delta.origin_y)+" "+enum_to_str(rule_app_delta.rule_direction,to_absolute_direction).value_or("ERROR")+"\n";
-                for(const auto& cell_delta : rule_app_delta.cell_deltas)
+                result += "Movement Resolution\n";
+                for(const auto& move_delta : rule_delta.movement_deltas)
                 {
-                    for(const auto& object_delta : cell_delta.deltas)
+                    result += "\t";
+                    result += (move_delta.object.get() != nullptr ? move_delta.object->identifier : "nullptr") + " ";
+                    result += "moved " + enum_to_str(move_delta.move_direction,to_absolute_direction).value_or("ERROR");
+                    result += " from ("+ to_string(move_delta.origin_x)+","+to_string(move_delta.origin_y);
+                    result += ") to ("+to_string(move_delta.destination_x)+","+to_string(move_delta.destination_y)+")\n";
+                }
+            }
+            else
+            {
+                result += rule_delta.rule_applied.to_string()+"\n";
+                for(const auto& rule_app_delta : rule_delta.rule_application_deltas)
+                {
+                    result += "\t" + to_string(rule_app_delta.origin_x)+","+to_string(rule_app_delta.origin_y)+" "+enum_to_str(rule_app_delta.rule_direction,to_absolute_direction).value_or("ERROR")+"\n";
+                    for(const auto& cell_delta : rule_app_delta.cell_deltas)
                     {
-                        result += "\t\t" + to_string(cell_delta.x)+","+to_string(cell_delta.y)+" ";
-                        result += (object_delta.object.get() != nullptr ? object_delta.object->identifier : "nullptr") + " ";
-                        result += enum_to_str(object_delta.type,to_object_delta_type).value_or("ERROR") + "\n";
+                        for(const auto& object_delta : cell_delta.deltas)
+                        {
+                            result += "\t\t" + to_string(cell_delta.x)+","+to_string(cell_delta.y)+" ";
+                            result += (object_delta.object.get() != nullptr ? object_delta.object->identifier : "nullptr") + " ";
+                            result += enum_to_str(object_delta.type,to_object_delta_type).value_or("ERROR") + "\n";
+                        }
                     }
                 }
             }
