@@ -237,7 +237,7 @@ bool run_tests(string directory_path)
 
     for (const auto & entry : std::filesystem::directory_iterator(directory_path))
     {
-        if(equal_op(entry.path().extension(),".test_record"))
+        if(equal_op(entry.path().extension().string(),".test_record"))
         {
             cout << "found " << entry.path() <<"\n";
 

@@ -1,25 +1,56 @@
 import os
 
-envDebug = Environment(CXX= 'clang++', CXXFLAGS="-std=c++17") #initializing the environment
+platform_list = ["linux", "windows"]
 
-envDebug['ENV']['TERM'] = os.environ['TERM']
+use_clang = False
+
+color_output = False
+
+platform_arg = ARGUMENTS.get("platform", False)
+
+use_clang = ARGUMENTS.get("use_clang", use_clang)
+
+color_output = ARGUMENTS.get("color_output", color_output)
+
+if platform_arg == False:
+    print("please specify a platform with argument \"platform=\"")
+    print("available platforms are :")
+    for platform in platform_list:
+        print(platform)
+    Exit(2)
+
+if platform_arg == "windows" :
+    envDebug = Environment(CXXFLAGS="/std:c++17") #initializing the environment
+elif platform_arg == "linux" :
+    compiler = "g++"
+    if use_clang == "yes":
+        compiler = "clang++"
+    envDebug = Environment(CXX= compiler, CXXFLAGS="-std=c++17") #initializing the environment
+
+if color_output == "yes":
+    envDebug['ENV']['TERM'] = os.environ['TERM']
 
 sources = Glob('*.cpp')
 
 envDebug.Append(CPPPATH = ['#include/'])
-envDebug.Append(CXXFLAGS = ' -g')
-envDebug.Append(CXXFLAGS = ' -fno-rtti')
 
-envDebug.Append(CXXFLAGS = ' -Werror')
+if platform_arg == "windows":
+    envDebug.Append(CXXFLAGS = " /EHsc")
+elif platform_arg == "linux":
+    envDebug.Append(CXXFLAGS = ' -g')
+    envDebug.Append(CXXFLAGS = ' -fno-rtti')
 
-envDebug.Append(CXXFLAGS = ' -Wall')
-envDebug.Append(CXXFLAGS = ' -Wextra')
-envDebug.Append(CXXFLAGS = ' -Wabi')
-envDebug.Append(CXXFLAGS = ' -Wwrite-strings')
-envDebug.Append(CXXFLAGS = ' -D_GLIBCXX_DEBUG')
+    envDebug.Append(CXXFLAGS = ' -Werror')
 
-envDebug.Append(CXXFLAGS = ' -Wno-unused-parameter')
-envDebug.Append(CXXFLAGS = ' -Wno-sign-compare')
+    envDebug.Append(CXXFLAGS = ' -Wall')
+    envDebug.Append(CXXFLAGS = ' -Wextra')
+    if use_clang == "yes":
+        envDebug.Append(CXXFLAGS = ' -Wabi')
+    envDebug.Append(CXXFLAGS = ' -Wwrite-strings')
+    envDebug.Append(CXXFLAGS = ' -D_GLIBCXX_DEBUG')
+
+    envDebug.Append(CXXFLAGS = ' -Wno-unused-parameter')
+    envDebug.Append(CXXFLAGS = ' -Wno-sign-compare')
 
 ps_engine_lib_sources = ["CompiledGame.cpp","Compiler.cpp","PSEngine.cpp","ParsedGame.cpp","Parser.cpp", "PSLogger.cpp", "TextProvider.cpp"]
 ps_engine_lib = envDebug.Library("#build/debug/psengine", ps_engine_lib_sources)
