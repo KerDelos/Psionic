@@ -228,6 +228,7 @@ void PSEngine::next_turn()
     if( m_turn_history.size() > 0)
     {
         m_level_state_stack.push_back(last_turn_save);
+        print_subturns_history();
     }
     //else it means nothing happened
 
@@ -455,11 +456,10 @@ bool PSEngine::does_rule_cell_matches_cell(const CompiledGame::RuleCell& p_rule_
     return true;
 }
 
-PSEngine::RuleDelta PSEngine::compute_rule_delta(const CompiledGame::Rule& p_rule, const Cell& p_origin_cell, AbsoluteDirection p_rule_app_dir)
+PSEngine::RuleApplicationDelta PSEngine::compute_rule_delta(const CompiledGame::Rule& p_rule, const Cell& p_origin_cell, AbsoluteDirection p_rule_app_dir)
 {
-    RuleDelta delta;
+    RuleApplicationDelta delta;
 
-    delta.rule_applied = p_rule;
     delta.origin_x = p_origin_cell.x;
     delta.origin_y = p_origin_cell.y;
     delta.rule_direction = p_rule_app_dir;
@@ -667,7 +667,7 @@ PSEngine::RuleDelta PSEngine::compute_rule_delta(const CompiledGame::Rule& p_rul
 
 void PSEngine::apply_rule(const CompiledGame::Rule& p_rule)
 {
-    vector<RuleDelta> deltas; //todo a vector does seem to be really necessary here
+    RuleDelta rule_delta;
 
     set<AbsoluteDirection> application_directions = get_absolute_directions_from_rule_direction(p_rule.direction);
 
@@ -699,22 +699,28 @@ void PSEngine::apply_rule(const CompiledGame::Rule& p_rule)
             {
                 log("Matched the rule at ("+to_string(cell.x)+","+to_string(cell.y)+") "+ enum_to_str(rule_app_dir, to_absolute_direction).value_or("error"));
 
-                RuleDelta rule_delta = compute_rule_delta(p_rule,cell, rule_app_dir);
-                deltas.push_back(rule_delta);
-                m_turn_history.back().steps.push_back(rule_delta);
+                RuleApplicationDelta application_delta = compute_rule_delta(p_rule,cell, rule_app_dir);
+                rule_delta.rule_application_deltas.push_back(application_delta);
             }
         }
     }
 
+
+    if(rule_delta.rule_application_deltas.size() > 0)
+    {
+        rule_delta.rule_applied = p_rule;
+        m_turn_history.back().steps.push_back(rule_delta);
+    }
+
     //todo check if there is collision between deltas
 
-    for(const RuleDelta& delta : deltas)
+    for(const RuleApplicationDelta& delta : rule_delta.rule_application_deltas)
     {
         apply_delta(delta);
     }
 }
 
-void PSEngine::apply_delta(const RuleDelta& p_delta)
+void PSEngine::apply_delta(const RuleApplicationDelta& p_delta)
 {
     for(const auto& cell_delta : p_delta.cell_deltas)
     {
@@ -1424,3 +1430,31 @@ void PSEngine::print_operation_history() const
     m_logger->log(PSLogger::LogType::Log, m_engine_log_cat, operation_history_to_string());
 }
 
+void PSEngine::print_subturns_history() const
+{
+    string result = "";
+    for(int i = 0; i < m_turn_history.size(); ++i)
+    {
+        const auto& subturn = m_turn_history[i];
+        result += "--- Subturn " + to_string(i+1) + "/" + to_string(m_turn_history.size()) + "---\n";
+        for(const auto& rule_delta : subturn.steps)
+        {
+            result += rule_delta.rule_applied.to_string()+"\n";
+            for(const auto& rule_app_delta : rule_delta.rule_application_deltas)
+            {
+                result += "\t" + to_string(rule_app_delta.origin_x)+","+to_string(rule_app_delta.origin_y)+" "+enum_to_str(rule_app_delta.rule_direction,to_absolute_direction).value_or("ERROR")+"\n";
+                for(const auto& cell_delta : rule_app_delta.cell_deltas)
+                {
+                    for(const auto& object_delta : cell_delta.deltas)
+                    {
+                        result += "\t\t" + to_string(cell_delta.x)+","+to_string(cell_delta.y)+" ";
+                        result += (object_delta.object.get() != nullptr ? object_delta.object->identifier : "nullptr") + " ";
+                        result += enum_to_str(object_delta.type,to_object_delta_type).value_or("ERROR") + "\n";
+                    }
+                }
+            }
+        }
+    }
+
+    m_logger->log(PSLogger::LogType::Log, m_engine_log_cat, result);
+}

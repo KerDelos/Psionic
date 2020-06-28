@@ -80,13 +80,18 @@ public:
         vector<ObjectDelta> deltas; //order is important since we can have an appear and a move on the same object
     };
 
-    struct RuleDelta
+    struct RuleApplicationDelta
     {
-        CompiledGame::Rule rule_applied;
         AbsoluteDirection rule_direction;
         int origin_x = -1;
         int origin_y = -1;
         vector<CellDelta> cell_deltas;
+    };
+
+    struct RuleDelta
+    {
+        CompiledGame::Rule rule_applied;
+        vector<RuleApplicationDelta> rule_application_deltas;
     };
 
     enum class InputType
@@ -162,6 +167,8 @@ public:
 
     string operation_history_to_string() const;
     void print_operation_history() const;
+
+    void print_subturns_history() const;
     
 protected:
 
@@ -176,7 +183,7 @@ protected:
 
     void apply_rule(const CompiledGame::Rule& p_rule);
 
-    void apply_delta(const RuleDelta& p_delta);
+    void apply_delta(const RuleApplicationDelta& p_delta);
 
     bool resolve_movements();
 
@@ -198,7 +205,7 @@ protected:
 
     bool get_move_destination_coord(int p_origin_x, int p_origin_y, ObjectMoveType p_move_type, int& p_out_dest_x, int& p_out_dest_y);
 
-    RuleDelta compute_rule_delta(const CompiledGame::Rule& p_rule, const Cell& p_origin_cell, AbsoluteDirection p_rule_app_dir);
+    RuleApplicationDelta compute_rule_delta(const CompiledGame::Rule& p_rule, const Cell& p_origin_cell, AbsoluteDirection p_rule_app_dir);
 
     Cell* get_cell_from(int p_origin_x, int p_origin_y, int p_distance, AbsoluteDirection p_direction);
     Cell* get_cell_at(int p_x, int p_y);
