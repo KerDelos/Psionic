@@ -499,9 +499,12 @@ PSEngine::RuleApplicationDelta PSEngine::compute_rule_delta(const CompiledGame::
             }
             else if(match_content_pair.second != result_equivalent_pair->second) 
             {
+                shared_ptr<CompiledGame::PrimaryObject> appearing_obj = nullptr; 
+
                 if(match_content_pair.second == CompiledGame::EntityRuleInfo::No)
                 {
-                    if(shared_ptr<CompiledGame::PrimaryObject> appearing_obj = match_content_pair.first->as_primary_object())
+                    appearing_obj = match_content_pair.first->as_primary_object();
+                    if(appearing_obj)
                     {
                         cell_delta.deltas.push_back(ObjectDelta(appearing_obj,ObjectDeltaType::Appear));
                     }
@@ -509,6 +512,7 @@ PSEngine::RuleApplicationDelta PSEngine::compute_rule_delta(const CompiledGame::
                     {
                         //todo support aggregate objects ?
                         detect_error("Trying to make a non primary object appear. This is ambiguous.");
+                        continue;
                     }
                 }
                 else if(result_equivalent_pair->second == CompiledGame::EntityRuleInfo::No)
@@ -516,6 +520,17 @@ PSEngine::RuleApplicationDelta PSEngine::compute_rule_delta(const CompiledGame::
                     cell_delta.deltas.push_back(ObjectDelta(matched_primary_obj,ObjectDeltaType::Disappear));
                     continue;
                 }
+
+                shared_ptr<CompiledGame::PrimaryObject> object_to_use_in_delta = matched_primary_obj;
+                if(!object_to_use_in_delta)
+                {
+                    object_to_use_in_delta = appearing_obj;
+                    if(!object_to_use_in_delta)
+                    {
+                        detect_error("should never happen, wasn't able to find the object for the delta");
+                    }
+                }
+
 
                 if(result_equivalent_pair->second == CompiledGame::EntityRuleInfo::Moving 
                 || result_equivalent_pair->second == CompiledGame::EntityRuleInfo::Parallel 
@@ -530,7 +545,7 @@ PSEngine::RuleApplicationDelta PSEngine::compute_rule_delta(const CompiledGame::
                 else if(result_equivalent_pair->second == CompiledGame::EntityRuleInfo::None
                 || result_equivalent_pair->second == CompiledGame::EntityRuleInfo::Stationary  )
                 {
-                    cell_delta.deltas.push_back(ObjectDelta(matched_primary_obj,ObjectDeltaType::Stationary));
+                    cell_delta.deltas.push_back(ObjectDelta(object_to_use_in_delta,ObjectDeltaType::Stationary));
                 }
                 else
                 {
@@ -565,7 +580,7 @@ PSEngine::RuleApplicationDelta PSEngine::compute_rule_delta(const CompiledGame::
                         break;
                     }
 
-                    cell_delta.deltas.push_back(ObjectDelta(matched_primary_obj,delta_type));
+                    cell_delta.deltas.push_back(ObjectDelta(object_to_use_in_delta,delta_type));
                 }
                 
             }
@@ -753,7 +768,11 @@ void PSEngine::apply_delta(const RuleApplicationDelta& p_delta)
 
         for(const ObjectDelta& obj_delta : cell_delta.deltas)
         {
-            if(obj_delta.type == ObjectDeltaType::None)
+            if(!obj_delta.object)
+            {
+                detect_error("should never happen, there's a nullptr object in a delta");
+            }
+            else if(obj_delta.type == ObjectDeltaType::None)
             {
                 detect_error("should not happen");
             }
@@ -767,8 +786,7 @@ void PSEngine::apply_delta(const RuleApplicationDelta& p_delta)
                 else
                 {
                     string cell_coord_str = to_string(cell->x)+","+to_string(cell->y);
-                    string object_name = obj_delta.object.get() != nullptr ? obj_delta.object->identifier : "nullptr";
-                    detect_error("cannot add object " +object_name+ " since there's already one in the cell ("+cell_coord_str+")");
+                    detect_error("cannot add object " +obj_delta.object->identifier+ " since there's already one in the cell ("+cell_coord_str+")");
                 }
                 //todo check for collisions
             }
@@ -782,8 +800,7 @@ void PSEngine::apply_delta(const RuleApplicationDelta& p_delta)
                 else
                 {
                     string cell_coord_str = to_string(cell->x)+","+to_string(cell->y);
-                    string object_name = obj_delta.object.get() != nullptr ? obj_delta.object->identifier : "nullptr";
-                    detect_error("cannot delete object " +object_name+ " since it wasn't on the cell ("+cell_coord_str+")");
+                    detect_error("cannot delete object " +obj_delta.object->identifier+ " since it wasn't on the cell ("+cell_coord_str+")");
                 }       
             }
             else
