@@ -71,6 +71,12 @@ public:
         ObjectDeltaType type;
 
         ObjectDelta(shared_ptr<CompiledGame::PrimaryObject> p_object, ObjectDeltaType p_type) : object(p_object), type(p_type){};
+
+        friend bool operator==(const ObjectDelta& lhs, const ObjectDelta& rhs){
+            bool result = lhs.object == rhs.object;
+            result &= lhs.type == rhs.type;
+            return result;
+        }
     };
 
     struct CellDelta
@@ -78,6 +84,13 @@ public:
         int x = -1;
         int y = -1;
         vector<ObjectDelta> deltas; //order is important since we can have an appear and a move on the same object
+
+        friend bool operator==(const CellDelta& lhs, const CellDelta& rhs){
+            bool result = lhs.x == rhs.x;
+            result &= lhs.y == rhs.y;
+            result &= lhs.deltas == rhs.deltas;
+            return result;
+        }
     };
 
     struct RuleApplicationDelta
@@ -86,6 +99,10 @@ public:
         int origin_x = -1;
         int origin_y = -1;
         vector<CellDelta> cell_deltas;
+
+        friend bool operator==(const RuleApplicationDelta& lhs, const RuleApplicationDelta& rhs){
+            return lhs.cell_deltas == rhs.cell_deltas;
+        }
     };
 
     struct RuleDelta

@@ -697,13 +697,40 @@ void PSEngine::apply_rule(const CompiledGame::Rule& p_rule)
 
             if(match_success)
             {
-                log("Matched the rule at ("+to_string(cell.x)+","+to_string(cell.y)+") "+ enum_to_str(rule_app_dir, to_absolute_direction).value_or("error"));
-
                 RuleApplicationDelta application_delta = compute_rule_delta(p_rule,cell, rule_app_dir);
-                rule_delta.rule_application_deltas.push_back(application_delta);
+
+                //do not add exactly identical deltas
+                //todo this could and should probably done by the compiler (altough maybe not all equalities could be caught by the compiler)
+                bool add_delta = true;
+                string matched_delta_app_str = "";
+                for(const auto& app_delta : rule_delta.rule_application_deltas)
+                {
+                    if(app_delta == application_delta)
+                    {
+                        add_delta = false;
+                        matched_delta_app_str = "("+to_string(cell.x)+","+to_string(cell.y)+") "+ enum_to_str(rule_app_dir, to_absolute_direction).value_or("error");
+                        break;
+                    }
+                }
+
+                if(add_delta)
+                {                
+                    log("Matched the rule at ("+to_string(cell.x)+","+to_string(cell.y)+") "+ enum_to_str(rule_app_dir, to_absolute_direction).value_or("error"));
+                    rule_delta.rule_application_deltas.push_back(application_delta);
+                }
+                else
+                {
+                    log("Skipping match at ("+to_string(cell.x)+","+to_string(cell.y)+") "+ enum_to_str(rule_app_dir, to_absolute_direction).value_or("error") +" since it equals match at "+matched_delta_app_str);
+
+                }
+                
             }
         }
     }
+    
+    //todo check if there is collision between deltas
+
+    
 
 
     if(rule_delta.rule_application_deltas.size() > 0)
@@ -711,8 +738,6 @@ void PSEngine::apply_rule(const CompiledGame::Rule& p_rule)
         rule_delta.rule_applied = p_rule;
         m_turn_history.back().steps.push_back(rule_delta);
     }
-
-    //todo check if there is collision between deltas
 
     for(const RuleApplicationDelta& delta : rule_delta.rule_application_deltas)
     {
@@ -741,7 +766,9 @@ void PSEngine::apply_delta(const RuleApplicationDelta& p_delta)
                 }
                 else
                 {
-                    detect_error("cannot add object since there's already one in the cell");
+                    string cell_coord_str = to_string(cell->x)+","+to_string(cell->y);
+                    string object_name = obj_delta.object.get() != nullptr ? obj_delta.object->identifier : "nullptr";
+                    detect_error("cannot add object " +object_name+ " since there's already one in the cell ("+cell_coord_str+")");
                 }
                 //todo check for collisions
             }
@@ -754,7 +781,9 @@ void PSEngine::apply_delta(const RuleApplicationDelta& p_delta)
                 }
                 else
                 {
-                    detect_error("cannot delete object since it wasn't on the cell");
+                    string cell_coord_str = to_string(cell->x)+","+to_string(cell->y);
+                    string object_name = obj_delta.object.get() != nullptr ? obj_delta.object->identifier : "nullptr";
+                    detect_error("cannot delete object " +object_name+ " since it wasn't on the cell ("+cell_coord_str+")");
                 }       
             }
             else
