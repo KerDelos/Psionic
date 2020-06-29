@@ -35,7 +35,16 @@ sources = Glob('*.cpp')
 envDebug.Append(CPPPATH = ['#include/'])
 
 if platform_arg == "windows":
-    envDebug.Append(CXXFLAGS = " /EHsc")
+    envDebug.Append(CXXFLAGS = " /EHsc") # Enable exceptions
+
+    envDebug.Append(CXXFLAGS = " /Zi") # Debug information
+    envDebug.Append(CXXFLAGS = " /GR-") # Disable RTTI
+
+    envDebug.Append(CXXFLAGS = " /WX") # Warnings as errors
+
+    envDebug.Append(CXXFLAGS = " /W4") # Enable most warnings
+    envDebug.Append(CXXFLAGS = " /wd4100") # Ignore unreferenced formal parameters
+
 elif platform_arg == "linux":
     envDebug.Append(CXXFLAGS = ' -g')
     envDebug.Append(CXXFLAGS = ' -fno-rtti')
