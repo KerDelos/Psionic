@@ -138,7 +138,7 @@ public:
         Action,
     };
 
-    
+
 
     enum class OperationType{
         None,
@@ -191,7 +191,7 @@ public:
 
     bool is_level_won() const;
 
-    int get_number_of_levels() const {return m_compiled_game.levels.size();}
+    int get_number_of_levels() const {return (int)m_compiled_game.levels.size();}
 
     void print_game_state(); //todo making this const will require a few changes and maybe some mutables
 
@@ -203,7 +203,7 @@ public:
     void print_operation_history() const;
 
     void print_subturns_history() const;
-    
+
 protected:
 
     shared_ptr<PSLogger> m_logger;

@@ -59,7 +59,7 @@ void parse_and_send_game_input(PSEngine& p_engine, char input)
     case 's':
         input_type = PSEngine::InputType::Down;
         break;
-    case 'd':  
+    case 'd':
         input_type = PSEngine::InputType::Right;
         break;
     case 'e':
@@ -94,12 +94,12 @@ void load_and_run_game(string file_path)
 
     while(true)
     {
-        
+
         if(engine.is_level_won())
         {
             cout << "Level Complete !\n Press r to restart the level or n to load the next one.\n";
 
-            char input = getchar();
+            char input = (char)getchar();
 
             if(input == 'r')
             {
@@ -115,7 +115,7 @@ void load_and_run_game(string file_path)
         }
         else
         {
-            char input = getchar();
+            char input = (char)getchar();
 
             parse_and_send_game_input(engine,input);
         }
@@ -157,7 +157,7 @@ void run_game_and_record_test_file(string resources_folder_path, string file_nam
     {
         cout << "detected  " << compiled_game.levels.size() << " levels.\n input the index of a level to record a test run\n input quit to quit the record session\n";
 
-        string input1; 
+        string input1;
         getline(cin,input1);
 
         if(equal_op(input1,"quit"))
@@ -189,7 +189,7 @@ void run_game_and_record_test_file(string resources_folder_path, string file_nam
 
             while(true)
             {
-                string input2; 
+                string input2;
                 getline(cin,input2);
                 if(equal_op(input2,"quit"))
                 {
@@ -215,7 +215,7 @@ void run_game_and_record_test_file(string resources_folder_path, string file_nam
                         cout << "error : please only enter one character at a time";
                     }
                 }
-                
+
             }
 
         }
@@ -293,7 +293,7 @@ bool run_tests(string directory_path)
                         has_error= true;
                         break;
                     }
-                    
+
                 }
                 else
                 {
@@ -344,7 +344,7 @@ bool run_tests(string directory_path)
             test_record_f.close();
         }
     }
-    
+
     return !has_error;
 }
 
@@ -388,7 +388,7 @@ int main(int argc, char *argv[])
             cout << "error : incorrect argument\n";
             has_error = true;
         }
-        
+
     }
 
     if( argc > 3)
@@ -401,7 +401,7 @@ int main(int argc, char *argv[])
     {
         return EXIT_FAILURE;
     }
-    
+
     if(test_requested)
     {
         if(run_tests(resources_folder_path))
@@ -412,9 +412,9 @@ int main(int argc, char *argv[])
         {
             cout << "Errors detected while testing, there may have been a regression with the engine\n";
         }
-        
+
     }
-    else 
+    else
     {
         string file_path = resources_folder_path + file_name;
 
@@ -426,7 +426,7 @@ int main(int argc, char *argv[])
         {
             load_and_run_game(file_path);
         }
-        
+
     }
 
 	return 0;
