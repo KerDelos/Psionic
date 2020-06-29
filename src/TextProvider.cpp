@@ -19,7 +19,7 @@ TextProviderString::TextProviderString(shared_ptr<PSLogger> p_logger, string p_t
 		m_current_char_idx = 0;
 	}
 }
-	
+
 bool TextProviderString::is_valid()
 {
 	return TextProvider::is_valid() && m_iterator != m_text.end();
@@ -45,7 +45,7 @@ char TextProviderString::advance()
 		{
 			++m_iterator.value();
 		}
-		
+
 		if(m_iterator.value() != m_text.end())
 		{
 			m_current_char = *m_iterator.value();
@@ -57,7 +57,7 @@ char TextProviderString::advance()
 
 		if( static_cast<unsigned char>(m_current_char) > 127)
 		{
-			m_logger->log(PSLogger::LogType::Error, m_parser_text_provider_log_cat, 
+			m_logger->log(PSLogger::LogType::Error, m_parser_text_provider_log_cat,
 			"detected non ascii character ( n : "+to_string(m_current_char_idx)+". this interpreter does not yet support unicode files, sorry :/");
 			//todo add a line counter in this class to make these function return the correct line
 			m_has_error = true;
@@ -65,7 +65,7 @@ char TextProviderString::advance()
 
 		if(m_current_char == '\r')
 		{
-			m_logger->log(PSLogger::LogType::Error, m_parser_text_provider_log_cat, 
+			m_logger->log(PSLogger::LogType::Error, m_parser_text_provider_log_cat,
 			"detected character \\r. Sorry but for now psionic can only handle files with LF (\\n) line endings.");
 			m_has_error = true;
 		}
@@ -90,13 +90,13 @@ char TextProviderString::peek()
 {
 	if( !m_iterator.has_value())
 	{
-		m_logger->log(PSLogger::LogType::Error, m_parser_text_provider_log_cat, 
+		m_logger->log(PSLogger::LogType::Error, m_parser_text_provider_log_cat,
 			"Cannot yet use peek before a first advance with the textProviderString, sorry :/");
 		m_has_error = true;
 		return '\0';
 	}
 
-	int peeked_at_index = (m_iterator.value() - m_text.begin()) + 1;
+	int peeked_at_index = (int)(m_iterator.value() - m_text.begin()) + 1;
 
 	if(is_valid() && peeked_at_index < m_text.size())
 	{
@@ -111,13 +111,13 @@ char TextProviderString::peek_next()
 {
 	if( !m_iterator.has_value())
 	{
-		m_logger->log(PSLogger::LogType::Error, m_parser_text_provider_log_cat, 
+		m_logger->log(PSLogger::LogType::Error, m_parser_text_provider_log_cat,
 			"Cannot yet use peek before a first advance with the textProviderString, sorry :/");
 		m_has_error = true;
 		return '\0';
 	}
 
-	int peeked_at_index = (m_iterator.value() - m_text.begin()) + 2;
+	int peeked_at_index = (int)(m_iterator.value() - m_text.begin()) + 2;
 
 	if(is_valid() && peeked_at_index < m_text.size())
 	{
@@ -154,7 +154,7 @@ TextProviderFile::~TextProviderFile()
 		m_file.close();
 	}
 }
-	
+
 bool TextProviderFile::is_valid()
 {
 	return TextProvider::is_valid() && m_file.is_open() && !m_file.eof();
@@ -169,7 +169,7 @@ char TextProviderFile::advance()
 
 		if( static_cast<unsigned char>(m_current_char) > 127)
 		{
-			m_logger->log(PSLogger::LogType::Error, m_parser_text_provider_log_cat, 
+			m_logger->log(PSLogger::LogType::Error, m_parser_text_provider_log_cat,
 			"detected non ascii character. this interpreter does not yet support unicode files, sorry :/");
 			//todo add a line counter in this class to make these function return the correct line
 			m_has_error = true;
@@ -177,7 +177,7 @@ char TextProviderFile::advance()
 
 		if(m_current_char == '\r')
 		{
-			m_logger->log(PSLogger::LogType::Error, m_parser_text_provider_log_cat, 
+			m_logger->log(PSLogger::LogType::Error, m_parser_text_provider_log_cat,
 			"detected character \\r. Sorry but for now psionic can only handle files with LF (\\n) line endings.");
 			m_has_error = true;
 		}
@@ -202,7 +202,7 @@ char TextProviderFile::peek()
 {
 	if(is_valid())
 	{
-		return m_file.peek();
+		return (char)m_file.peek();
 	}
 	else
 	{
@@ -216,7 +216,7 @@ char TextProviderFile::peek_next()
 		//todo make this function secure. it may crash if called close to eof ?
 		char result;
 		m_file.get(result);
-		result = m_file.peek();
+		result = (char)m_file.peek();
 		m_file.unget();
 		return result;
 	}

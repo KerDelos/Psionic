@@ -80,7 +80,7 @@ optional<shared_ptr<CompiledGame::PrimaryObject>> PSEngine::Cell::find_colliding
         }
         current_col_layers.insert(pair.first->collision_layer.lock());
     }
-    
+
     return nullopt;
 }
 
@@ -175,7 +175,7 @@ bool PSEngine::undo()
         return false;
     }
 
-    m_current_level = m_level_state_stack.back(); 
+    m_current_level = m_level_state_stack.back();
     m_level_state_stack.pop_back();
 
     return true;
@@ -219,7 +219,7 @@ void PSEngine::next_turn()
                         keep_computing_subturn = true;
                     }
                 }
-                
+
             }
         }
 
@@ -261,7 +261,7 @@ bool PSEngine::next_subturn()
     else
     {
         log("movement resolved");
-        
+
         for(const auto& rule : m_compiled_game.late_rules)
         {
             log("Processing late rule : " + rule.to_string());
@@ -330,12 +330,12 @@ optional<set<PSEngine::ObjectMoveType>> PSEngine::convert_entity_rule_info_to_al
         results.insert(ObjectMoveType::Up);
         results.insert(ObjectMoveType::Down);
         break;
-    case CompiledGame::EntityRuleInfo::Orthogonal: 
+    case CompiledGame::EntityRuleInfo::Orthogonal:
         results.insert(ObjectMoveType::Up);
         results.insert(ObjectMoveType::Down);
         results.insert(ObjectMoveType::Left);
         results.insert(ObjectMoveType::Right);
-        break; 
+        break;
     case CompiledGame::EntityRuleInfo::Action:
         results.insert(ObjectMoveType::Action);
         break;
@@ -346,27 +346,27 @@ optional<set<PSEngine::ObjectMoveType>> PSEngine::convert_entity_rule_info_to_al
         results.insert(ObjectMoveType::Left);
         results.insert(ObjectMoveType::Right);
         break;
-    case CompiledGame::EntityRuleInfo::RelativeUp:   
+    case CompiledGame::EntityRuleInfo::RelativeUp:
         results.insert(relative_dirs_lookup_table[p_rule_app_dir][CompiledGame::EntityRuleInfo::RelativeUp]);
         break;
-    case CompiledGame::EntityRuleInfo::RelativeDown:   
+    case CompiledGame::EntityRuleInfo::RelativeDown:
         results.insert(relative_dirs_lookup_table[p_rule_app_dir][CompiledGame::EntityRuleInfo::RelativeDown]);
         break;
-    case CompiledGame::EntityRuleInfo::RelativeLeft:   
+    case CompiledGame::EntityRuleInfo::RelativeLeft:
         results.insert(relative_dirs_lookup_table[p_rule_app_dir][CompiledGame::EntityRuleInfo::RelativeLeft]);
         break;
-    case CompiledGame::EntityRuleInfo::RelativeRight:   
+    case CompiledGame::EntityRuleInfo::RelativeRight:
         results.insert(relative_dirs_lookup_table[p_rule_app_dir][CompiledGame::EntityRuleInfo::RelativeRight]);
         break;
-    case CompiledGame::EntityRuleInfo::Perpendicular:   
+    case CompiledGame::EntityRuleInfo::Perpendicular:
         results.insert(relative_dirs_lookup_table[p_rule_app_dir][CompiledGame::EntityRuleInfo::RelativeUp]);
         results.insert(relative_dirs_lookup_table[p_rule_app_dir][CompiledGame::EntityRuleInfo::RelativeDown]);
         break;
-    case CompiledGame::EntityRuleInfo::Parallel:   
+    case CompiledGame::EntityRuleInfo::Parallel:
         results.insert(relative_dirs_lookup_table[p_rule_app_dir][CompiledGame::EntityRuleInfo::RelativeRight]);
         results.insert(relative_dirs_lookup_table[p_rule_app_dir][CompiledGame::EntityRuleInfo::RelativeLeft]);
         break;
-    
+
     default:
         break;
     }
@@ -388,7 +388,7 @@ bool PSEngine::does_move_info_matches_rule(ObjectMoveType p_move_type, CompiledG
     else
     {
         optional<set<ObjectMoveType>> move_types_opt = convert_entity_rule_info_to_allowed_move_types(p_rule_info,p_rule_dir);
-    
+
         if(move_types_opt.has_value())
         {
             set<PSEngine::ObjectMoveType>allowed_move_types = move_types_opt.value();
@@ -425,7 +425,7 @@ bool PSEngine::does_rule_cell_matches_cell(const CompiledGame::RuleCell& p_rule_
                 if(!found_object)
                 {
                     first_found_object_move_type = cell_pair.second;
-                    found_object = true;         
+                    found_object = true;
                 }
                 else
                 {
@@ -450,7 +450,7 @@ bool PSEngine::does_rule_cell_matches_cell(const CompiledGame::RuleCell& p_rule_
         else if(!does_move_info_matches_rule(first_found_object_move_type, rule_pair.second, p_rule_application_direction))
         {
             return false;
-        }  
+        }
     }
 
     return true;
@@ -482,8 +482,8 @@ PSEngine::RuleApplicationDelta PSEngine::compute_rule_delta(const CompiledGame::
             for(const auto& level_cell_pair : level_cell->objects)
             {
                 if(match_content_pair.first->defines( level_cell_pair.first))
-                {   
-                    matched_primary_obj = level_cell_pair.first; 
+                {
+                    matched_primary_obj = level_cell_pair.first;
                 }
             }
 
@@ -497,9 +497,9 @@ PSEngine::RuleApplicationDelta PSEngine::compute_rule_delta(const CompiledGame::
                     cell_delta.deltas.push_back(ObjectDelta(matched_primary_obj,ObjectDeltaType::Disappear));
                 }
             }
-            else if(match_content_pair.second != result_equivalent_pair->second) 
+            else if(match_content_pair.second != result_equivalent_pair->second)
             {
-                shared_ptr<CompiledGame::PrimaryObject> appearing_obj = nullptr; 
+                shared_ptr<CompiledGame::PrimaryObject> appearing_obj = nullptr;
 
                 if(match_content_pair.second == CompiledGame::EntityRuleInfo::No)
                 {
@@ -532,10 +532,10 @@ PSEngine::RuleApplicationDelta PSEngine::compute_rule_delta(const CompiledGame::
                 }
 
 
-                if(result_equivalent_pair->second == CompiledGame::EntityRuleInfo::Moving 
-                || result_equivalent_pair->second == CompiledGame::EntityRuleInfo::Parallel 
+                if(result_equivalent_pair->second == CompiledGame::EntityRuleInfo::Moving
+                || result_equivalent_pair->second == CompiledGame::EntityRuleInfo::Parallel
                 || result_equivalent_pair->second == CompiledGame::EntityRuleInfo::Perpendicular
-                || result_equivalent_pair->second == CompiledGame::EntityRuleInfo::Vertical 
+                || result_equivalent_pair->second == CompiledGame::EntityRuleInfo::Vertical
                 || result_equivalent_pair->second == CompiledGame::EntityRuleInfo::Horizontal
                 || result_equivalent_pair->second == CompiledGame::EntityRuleInfo::Orthogonal)
                 {
@@ -561,19 +561,19 @@ PSEngine::RuleApplicationDelta PSEngine::compute_rule_delta(const CompiledGame::
                     switch (*move_types.begin())
                     {
                     case ObjectMoveType::Up:
-                        delta_type = ObjectDeltaType::Up; 
+                        delta_type = ObjectDeltaType::Up;
                         break;
                     case ObjectMoveType::Down:
-                        delta_type = ObjectDeltaType::Down; 
+                        delta_type = ObjectDeltaType::Down;
                         break;
                     case ObjectMoveType::Left:
-                        delta_type = ObjectDeltaType::Left; 
+                        delta_type = ObjectDeltaType::Left;
                         break;
                     case ObjectMoveType::Right:
-                        delta_type = ObjectDeltaType::Right; 
+                        delta_type = ObjectDeltaType::Right;
                         break;
                     case ObjectMoveType::Action:
-                        delta_type = ObjectDeltaType::Action; 
+                        delta_type = ObjectDeltaType::Action;
                         break;
                     default:
                         detect_error("should not happen");
@@ -582,7 +582,7 @@ PSEngine::RuleApplicationDelta PSEngine::compute_rule_delta(const CompiledGame::
 
                     cell_delta.deltas.push_back(ObjectDelta(object_to_use_in_delta,delta_type));
                 }
-                
+
             }
             else
             {
@@ -606,7 +606,7 @@ PSEngine::RuleApplicationDelta PSEngine::compute_rule_delta(const CompiledGame::
                     detect_error("ambiguous object detected, please specify a primary object"); //this should be detected in the rule compilations
                     continue;
                 }
-                
+
                 if(result_content_pair.second == CompiledGame::EntityRuleInfo::No)
                 {
                     //todo maybe we should consider this as an optional disappear
@@ -618,15 +618,15 @@ PSEngine::RuleApplicationDelta PSEngine::compute_rule_delta(const CompiledGame::
                 {
                     cell_delta.deltas.push_back(ObjectDelta(prim_obj,ObjectDeltaType::Appear));
 
-                    if(result_content_pair.second == CompiledGame::EntityRuleInfo::None 
+                    if(result_content_pair.second == CompiledGame::EntityRuleInfo::None
                     || result_content_pair.second == CompiledGame::EntityRuleInfo::Stationary )
                     {
                         //we  consider None and Stationary to be handled by the appear delta
                     }
-                    else if(result_content_pair.second == CompiledGame::EntityRuleInfo::Moving 
-                    || result_content_pair.second == CompiledGame::EntityRuleInfo::Parallel 
+                    else if(result_content_pair.second == CompiledGame::EntityRuleInfo::Moving
+                    || result_content_pair.second == CompiledGame::EntityRuleInfo::Parallel
                     || result_content_pair.second == CompiledGame::EntityRuleInfo::Perpendicular
-                    || result_content_pair.second == CompiledGame::EntityRuleInfo::Vertical 
+                    || result_content_pair.second == CompiledGame::EntityRuleInfo::Vertical
                     || result_content_pair.second == CompiledGame::EntityRuleInfo::Horizontal
                     || result_content_pair.second == CompiledGame::EntityRuleInfo::Orthogonal)
                     {
@@ -647,19 +647,19 @@ PSEngine::RuleApplicationDelta PSEngine::compute_rule_delta(const CompiledGame::
                         switch (*move_types.begin())
                         {
                         case ObjectMoveType::Up:
-                            delta_type = ObjectDeltaType::Up; 
+                            delta_type = ObjectDeltaType::Up;
                             break;
                         case ObjectMoveType::Down:
-                            delta_type = ObjectDeltaType::Down; 
+                            delta_type = ObjectDeltaType::Down;
                             break;
                         case ObjectMoveType::Left:
-                            delta_type = ObjectDeltaType::Left; 
+                            delta_type = ObjectDeltaType::Left;
                             break;
                         case ObjectMoveType::Right:
-                            delta_type = ObjectDeltaType::Right; 
+                            delta_type = ObjectDeltaType::Right;
                             break;
                         case ObjectMoveType::Action:
-                            delta_type = ObjectDeltaType::Action; 
+                            delta_type = ObjectDeltaType::Action;
                             break;
                         default:
                             detect_error("should not happen");
@@ -671,7 +671,7 @@ PSEngine::RuleApplicationDelta PSEngine::compute_rule_delta(const CompiledGame::
 
                 }
             }
-            
+
         }
 
         delta.cell_deltas.push_back(cell_delta);
@@ -690,7 +690,7 @@ void PSEngine::apply_rule(const CompiledGame::Rule& p_rule)
     {
         for(auto rule_app_dir : application_directions)
         {
-            if(!get_cell_from(cell.x,cell.y, p_rule.match_pattern.cells.size()-1, rule_app_dir))
+            if(!get_cell_from(cell.x,cell.y, (int)p_rule.match_pattern.cells.size()-1, rule_app_dir))
             {
                 //not enough space on the board to match this pattern
                 continue;
@@ -707,7 +707,7 @@ void PSEngine::apply_rule(const CompiledGame::Rule& p_rule)
                     match_success = false;
                     break;
                 }
-            
+
             }
 
             if(match_success)
@@ -729,7 +729,7 @@ void PSEngine::apply_rule(const CompiledGame::Rule& p_rule)
                 }
 
                 if(add_delta)
-                {                
+                {
                     log("Matched the rule at ("+to_string(cell.x)+","+to_string(cell.y)+") "+ enum_to_str(rule_app_dir, to_absolute_direction).value_or("error"));
                     rule_delta.rule_application_deltas.push_back(application_delta);
                 }
@@ -738,14 +738,14 @@ void PSEngine::apply_rule(const CompiledGame::Rule& p_rule)
                     log("Skipping match at ("+to_string(cell.x)+","+to_string(cell.y)+") "+ enum_to_str(rule_app_dir, to_absolute_direction).value_or("error") +" since it equals match at "+matched_delta_app_str);
 
                 }
-                
+
             }
         }
     }
-    
+
     //todo check if there is collision between deltas
 
-    
+
 
 
     if(rule_delta.rule_application_deltas.size() > 0)
@@ -777,7 +777,7 @@ void PSEngine::apply_delta(const RuleApplicationDelta& p_delta)
                 detect_error("should not happen");
             }
             else if(obj_delta.type == ObjectDeltaType::Appear)
-            {   
+            {
                 const auto& pair = cell->objects.find(obj_delta.object);
                 if(pair == cell->objects.end() )
                 {
@@ -791,7 +791,7 @@ void PSEngine::apply_delta(const RuleApplicationDelta& p_delta)
                 //todo check for collisions
             }
             else if(obj_delta.type == ObjectDeltaType::Disappear)
-            {   
+            {
                 const auto& pair = cell->objects.find(obj_delta.object);
                 if(pair != cell->objects.end() )
                 {
@@ -801,7 +801,7 @@ void PSEngine::apply_delta(const RuleApplicationDelta& p_delta)
                 {
                     string cell_coord_str = to_string(cell->x)+","+to_string(cell->y);
                     detect_error("cannot delete object " +obj_delta.object->identifier+ " since it wasn't on the cell ("+cell_coord_str+")");
-                }       
+                }
             }
             else
             {
@@ -824,11 +824,11 @@ void PSEngine::apply_delta(const RuleApplicationDelta& p_delta)
                     move_type = ObjectMoveType::Right;
                 }
                 else if(obj_delta.type == ObjectDeltaType::Action)
-                {   
+                {
                     move_type = ObjectMoveType::Action;
                 }
                 else if(obj_delta.type == ObjectDeltaType::Stationary)
-                {   
+                {
                     move_type = ObjectMoveType::Stationary;
                 }
 
@@ -838,13 +838,13 @@ void PSEngine::apply_delta(const RuleApplicationDelta& p_delta)
                 {
                     pair->second = move_type;
                 }
-            }          
+            }
         }
     }
 }
 
 bool PSEngine::resolve_movements()
-{  
+{
     return advanced_movement_resolution();
 }
 
@@ -890,7 +890,7 @@ bool PSEngine::try_to_move_object(Cell& p_containing_cell, shared_ptr<CompiledGa
 
                 //erase it preventively so it does not impede objects moving on this cell
                 //it will be readded if the move is impossible
-                p_containing_cell.objects.erase(pair->first); 
+                p_containing_cell.objects.erase(pair->first);
 
                 bool move_permitted = true;
 
@@ -926,7 +926,7 @@ bool PSEngine::try_to_move_object(Cell& p_containing_cell, shared_ptr<CompiledGa
                     p_containing_cell.objects.insert(make_pair(found_object, ObjectMoveType::Stationary));
                     return false;
                 }
-                
+
             }
             else
             {
@@ -969,7 +969,7 @@ bool PSEngine::advanced_movement_resolution()
             if( !try_to_move_object(cell, obj, movement_deltas) )
             {
                 //should return false only if the player can't move ?
-            }  
+            }
         }
     }
 
@@ -1229,11 +1229,11 @@ PSEngine::Cell* PSEngine::get_cell_from(int p_origin_x, int p_origin_y, int p_di
         case AbsoluteDirection::Right:
             return get_cell_from(p_origin_x+1,p_origin_y,p_distance-1,p_direction);
 
-        
+
         default:
             break;
         }
-    }  
+    }
 
     detect_error("should not happen");
     return nullptr;
@@ -1335,14 +1335,14 @@ void PSEngine::print_game_state()
     };
 
     auto draw_h_line = [&](){
-        
+
         for(int i = 0; i < (width*(cell_draw_size+1))+1; ++i)
         {
             print_result_str += "-";
         }
         print_result_str += "\n";
     };
-    
+
     reset_lines_to_draw();
 
     draw_h_line();
@@ -1356,7 +1356,7 @@ void PSEngine::print_game_state()
 
         for(int x = 0; x < width; ++x)
         {
-            const Cell& cell = m_current_level.cells[y*width+x]; 
+            const Cell& cell = m_current_level.cells[y*width+x];
 
             const int draw_space = cell_draw_size*cell_draw_size;
             int draw_idx = 0;
@@ -1371,7 +1371,7 @@ void PSEngine::print_game_state()
             {
                 string alias = get_single_char_obj_alias(obj.first->identifier);
 
-                const int line_idx = draw_idx / cell_draw_size; 
+                const int line_idx = draw_idx / cell_draw_size;
 
                 lines_to_draw[line_idx] += alias;
 
@@ -1398,7 +1398,7 @@ void PSEngine::print_game_state()
 
         reset_lines_to_draw();
     }
-    
+
     m_logger->log(PSLogger::LogType::Log, m_engine_log_cat, print_result_str);
 }
 
