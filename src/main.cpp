@@ -99,19 +99,23 @@ void load_and_run_game(string file_path)
         {
             cout << "Level Complete !\n Press r to restart the level or n to load the next one.\n";
 
-            char input = (char)getchar();
-
-            if(input == 'r')
+            while(true)
             {
-                engine.restart_level();
-                engine.print_game_state();
-            }
-            else if(input == 'n')
-            {
-                engine.load_next_level();
-                engine.print_game_state();
-            }
+                char input = (char)getchar();
 
+                if(input == 'r')
+                {
+                    engine.restart_level();
+                    engine.print_game_state();
+                    break;
+                }
+                else if(input == 'n')
+                {
+                    engine.load_next_level();
+                    engine.print_game_state();
+                    break;
+                }
+            }
         }
         else
         {
