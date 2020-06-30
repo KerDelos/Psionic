@@ -119,7 +119,7 @@ string CompiledGame::Rule::to_string() const
     {
         result += "late ";
     }
-    
+
     result += enum_to_str(direction,to_rule_direction).value_or("Error") + " ";
 
     result += "[";
@@ -134,11 +134,20 @@ string CompiledGame::Rule::to_string() const
         {
             first_time = false;
         }
-        
-        for(const auto& cell_content : cell.content)
+
+        if(cell.is_wildcard_cell)
         {
-            result += enum_to_str(cell_content.second,to_entity_rule_info).value_or("Error") + " " + cell_content.first->identifier +" ";
+            result += "...";
         }
+        else
+        {
+            for(const auto& cell_content : cell.content)
+            {
+                result += enum_to_str(cell_content.second,to_entity_rule_info).value_or("Error") + " " + cell_content.first->identifier +" ";
+            }
+        }
+
+
     }
     result += "] -> [";
     first_time = true;
@@ -153,9 +162,16 @@ string CompiledGame::Rule::to_string() const
             first_time = false;
         }
 
-        for(const auto& cell_content : cell.content)
+        if(cell.is_wildcard_cell)
         {
-            result += enum_to_str(cell_content.second,to_entity_rule_info).value_or("Error") + " "  + cell_content.first->identifier + " " ;
+            result += "...";
+        }
+        else
+        {
+            for(const auto& cell_content : cell.content)
+            {
+                result += enum_to_str(cell_content.second,to_entity_rule_info).value_or("Error") + " "  + cell_content.first->identifier + " " ;
+            }
         }
     }
     result += "] ";
@@ -218,7 +234,7 @@ void CompiledGame::print()
         cout << "Win Conditions :\n";
         for(const auto& condition : win_conditions)
         {
-            
+
             cout << enum_to_str(condition.type,to_win_condition_type).value_or("ERROR") << " ";
             cout << (condition.object != nullptr ? condition.object->identifier : "ERROR" ) << " ";
             cout << (condition.on_object != nullptr ? ("On " + condition.on_object->identifier): "" ) << "\n";
@@ -249,7 +265,7 @@ void CompiledGame::print()
                 {
                     cout << "|| ";
                 }
-                
+
             }
             cout << "\n";
         }

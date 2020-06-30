@@ -410,15 +410,20 @@ bool PSEngine::does_move_info_matches_rule(ObjectMoveType p_move_type, CompiledG
     }
 }
 
-bool PSEngine::does_rule_cell_matches_cell(const CompiledGame::RuleCell& p_rule_cell, const PSEngine::Cell& p_cell, AbsoluteDirection p_rule_application_direction)
+bool PSEngine::does_rule_cell_matches_cell(const CompiledGame::RuleCell& p_rule_cell, const PSEngine::Cell* p_cell, AbsoluteDirection p_rule_application_direction)
 {
+    if(!p_cell)
+    {
+        return false;
+    }
+
     for(pair<shared_ptr<CompiledGame::Object>,CompiledGame::EntityRuleInfo> rule_pair : p_rule_cell.content)
     {
         bool found_object = false;
 
         ObjectMoveType first_found_object_move_type = ObjectMoveType::None;
 
-        for(const auto& cell_pair : p_cell.objects)
+        for(const auto& cell_pair : p_cell->objects)
         {
             if(rule_pair.first->defines( cell_pair.first))
             {
@@ -456,7 +461,7 @@ bool PSEngine::does_rule_cell_matches_cell(const CompiledGame::RuleCell& p_rule_
     return true;
 }
 
-PSEngine::RuleApplicationDelta PSEngine::compute_rule_delta(const CompiledGame::Rule& p_rule, const Cell& p_origin_cell, AbsoluteDirection p_rule_app_dir)
+PSEngine::RuleApplicationDelta PSEngine::compute_rule_delta(const CompiledGame::Rule& p_rule, const Cell& p_origin_cell, AbsoluteDirection p_rule_app_dir, const vector<int>& p_wildcard_match_distances)
 {
     RuleApplicationDelta delta;
 
@@ -464,14 +469,28 @@ PSEngine::RuleApplicationDelta PSEngine::compute_rule_delta(const CompiledGame::
     delta.origin_y = p_origin_cell.y;
     delta.rule_direction = p_rule_app_dir;
 
+    auto wildcard_match_distances_iterator = p_wildcard_match_distances.begin();
+
+    int board_distance = -1;
     for(int i = 0; i < p_rule.match_pattern.cells.size(); ++i)
     {
+        ++board_distance; //incrementing it here to prevent it from being incorrect (would happen if a continue statement was added somewhere without incrementing the value)
+
         CellDelta cell_delta;
 
         const auto& match_cell = p_rule.match_pattern.cells[i];
         const auto& result_cell = p_rule.result_pattern.cells[i];
 
-        const Cell* level_cell = get_cell_from(p_origin_cell.x, p_origin_cell.y, i, p_rule_app_dir);
+        if(match_cell.is_wildcard_cell)
+        {
+            //the -1 is to compensate the increment at the top of the loop.
+            //Because we moved one cell further in the rule but not necessarily one cell on the board since "..." could correspond to 0 cell
+            board_distance += *wildcard_match_distances_iterator -1;
+            ++wildcard_match_distances_iterator;
+            continue;
+        }
+
+        const Cell* level_cell = get_cell_from(p_origin_cell.x, p_origin_cell.y, board_distance, p_rule_app_dir);
 
         cell_delta.x = level_cell->x;
         cell_delta.y = level_cell->y;
@@ -686,33 +705,89 @@ void PSEngine::apply_rule(const CompiledGame::Rule& p_rule)
 
     set<AbsoluteDirection> application_directions = get_absolute_directions_from_rule_direction(p_rule.direction);
 
+    vector<int> wildcard_match_distances;
+
     for(const auto& cell : m_current_level.cells)
     {
         for(auto rule_app_dir : application_directions)
         {
-            if(!get_cell_from(cell.x,cell.y, (int)p_rule.match_pattern.cells.size()-1, rule_app_dir))
-            {
-                //not enough space on the board to match this pattern
-                continue;
-            }
-
             bool match_success = true;
+            int board_distance = 0; //cannot use i to navigate the board since it does not take into account potentials "..." offsets
             for(int i = 0; i < p_rule.match_pattern.cells.size(); ++i)
             {
-                if(!does_rule_cell_matches_cell(
-                    p_rule.match_pattern.cells[i],
-                    *get_cell_from(cell.x,cell.y, i, rule_app_dir),
+                const CompiledGame::RuleCell& match_cell = p_rule.match_pattern.cells[i];
+
+                if(match_cell.is_wildcard_cell)
+                {
+                    if(!p_rule.result_pattern.cells[i].is_wildcard_cell)
+                    {
+                        detect_error("... is not properly placed in the second part of the rule");//todo this kind of checks should be moved in the compiler
+                        return;
+                    }
+                    else if(p_rule.match_pattern.cells.size() <= i + 1)
+                    {
+                        detect_error("... can not be the last element in a rule");//todo this kind of checks should be moved in the compiler
+                        return;
+                    }
+                    else if(p_rule.match_pattern.cells[i+1].is_wildcard_cell)
+                    {
+                        detect_error("... can not be followed by another ...");//todo this kind of checks should be moved in the compiler
+                        return;
+                    }
+
+                    const CompiledGame::RuleCell& next_match_cell = p_rule.match_pattern.cells[i+1];
+
+                    int wildcard_match_distance = 0;
+                    bool matched_wildcard = false;
+
+                    while( Cell* board_cell =  get_cell_from(cell.x,cell.y, board_distance + wildcard_match_distance, rule_app_dir) )
+                    {
+                        if(does_rule_cell_matches_cell(
+                            next_match_cell,
+                            board_cell,
+                            rule_app_dir))
+                        {
+                            matched_wildcard = true;
+                            break;
+                        }
+
+                        ++wildcard_match_distance;
+                    }
+
+                    if(matched_wildcard)
+                    {
+                        //the -1 is to compensate the increment at the top of the loop.
+                        //Because we moved one cell further in the rule but not necessarily one cell on the board since "..." could correspond to 0 cell
+                        board_distance += wildcard_match_distance -1;
+
+                        //also adding +1 to board_distance and i since we already checked the next rule cell (the one after the "...") was matching
+                        //so we want to skip directly to the one after by simulating a step in the for loop
+                        ++board_distance;
+                        ++ i;
+
+                        wildcard_match_distances.push_back(wildcard_match_distance);
+                    }
+                    else
+                    {
+                        match_success = false;
+                        break;
+                    }
+                }
+                else if(!does_rule_cell_matches_cell(
+                    match_cell,
+                    get_cell_from(cell.x,cell.y, board_distance, rule_app_dir),
                     rule_app_dir))
                 {
                     match_success = false;
                     break;
                 }
 
+                ++board_distance;
             }
 
             if(match_success)
             {
-                RuleApplicationDelta application_delta = compute_rule_delta(p_rule,cell, rule_app_dir);
+                RuleApplicationDelta application_delta = compute_rule_delta(p_rule,cell, rule_app_dir, wildcard_match_distances);
 
                 //do not add exactly identical deltas
                 //todo this could and should probably done by the compiler (altough maybe not all equalities could be caught by the compiler)

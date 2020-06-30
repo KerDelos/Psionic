@@ -230,7 +230,7 @@ protected:
     bool check_win_conditions();
     bool check_win_condition(const CompiledGame::WinCondition& p_win_condition);
 
-    bool does_rule_cell_matches_cell(const CompiledGame::RuleCell& p_rule_cell, const Cell& p_cell, AbsoluteDirection p_rule_application_direction);
+    bool does_rule_cell_matches_cell(const CompiledGame::RuleCell& p_rule_cell, const Cell* p_cell, AbsoluteDirection p_rule_application_direction);
 
     set<AbsoluteDirection> get_absolute_directions_from_rule_direction(CompiledGame::RuleDirection p_rule_direction);
 
@@ -239,7 +239,7 @@ protected:
 
     bool get_move_destination_coord(int p_origin_x, int p_origin_y, ObjectMoveType p_move_type, int& p_out_dest_x, int& p_out_dest_y);
 
-    RuleApplicationDelta compute_rule_delta(const CompiledGame::Rule& p_rule, const Cell& p_origin_cell, AbsoluteDirection p_rule_app_dir);
+    RuleApplicationDelta compute_rule_delta(const CompiledGame::Rule& p_rule, const Cell& p_origin_cell, AbsoluteDirection p_rule_app_dir, const vector<int>& p_wildcard_match_distances);
 
     Cell* get_cell_from(int p_origin_x, int p_origin_y, int p_distance, AbsoluteDirection p_direction);
     Cell* get_cell_at(int p_x, int p_y);

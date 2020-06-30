@@ -168,8 +168,6 @@ struct CompiledGame{
 
     struct RuleCell
     {
-        //typedef string ObjectIdentifier;
-
         bool is_wildcard_cell = false;
 
         map<shared_ptr<Object>,EntityRuleInfo> content;
