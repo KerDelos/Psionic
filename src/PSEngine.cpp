@@ -472,14 +472,14 @@ PSEngine::RuleApplicationDelta PSEngine::compute_rule_delta(const CompiledGame::
     auto wildcard_match_distances_iterator = p_wildcard_match_distances.begin();
 
     int board_distance = -1;
-    for(int i = 0; i < p_rule.match_pattern.cells.size(); ++i)
+    for(int i = 0; i < p_rule.match_pattern.front().cells.size(); ++i)
     {
         ++board_distance; //incrementing it here to prevent it from being incorrect (would happen if a continue statement was added somewhere without incrementing the value)
 
         CellDelta cell_delta;
 
-        const auto& match_cell = p_rule.match_pattern.cells[i];
-        const auto& result_cell = p_rule.result_pattern.cells[i];
+        const auto& match_cell = p_rule.match_pattern.front().cells[i];
+        const auto& result_cell = p_rule.result_pattern.front().cells[i];
 
         if(match_cell.is_wildcard_cell)
         {
@@ -713,29 +713,29 @@ void PSEngine::apply_rule(const CompiledGame::Rule& p_rule)
         {
             bool match_success = true;
             int board_distance = 0; //cannot use i to navigate the board since it does not take into account potentials "..." offsets
-            for(int i = 0; i < p_rule.match_pattern.cells.size(); ++i)
+            for(int i = 0; i < p_rule.match_pattern.front().cells.size(); ++i)
             {
-                const CompiledGame::RuleCell& match_cell = p_rule.match_pattern.cells[i];
+                const CompiledGame::RuleCell& match_cell = p_rule.match_pattern.front().cells[i];
 
                 if(match_cell.is_wildcard_cell)
                 {
-                    if(!p_rule.result_pattern.cells[i].is_wildcard_cell)
+                    if(!p_rule.result_pattern.front().cells[i].is_wildcard_cell)
                     {
                         detect_error("... is not properly placed in the second part of the rule");//todo this kind of checks should be moved in the compiler
                         return;
                     }
-                    else if(p_rule.match_pattern.cells.size() <= i + 1)
+                    else if(p_rule.match_pattern.front().cells.size() <= i + 1)
                     {
                         detect_error("... can not be the last element in a rule");//todo this kind of checks should be moved in the compiler
                         return;
                     }
-                    else if(p_rule.match_pattern.cells[i+1].is_wildcard_cell)
+                    else if(p_rule.match_pattern.front().cells[i+1].is_wildcard_cell)
                     {
                         detect_error("... can not be followed by another ...");//todo this kind of checks should be moved in the compiler
                         return;
                     }
 
-                    const CompiledGame::RuleCell& next_match_cell = p_rule.match_pattern.cells[i+1];
+                    const CompiledGame::RuleCell& next_match_cell = p_rule.match_pattern.front().cells[i+1];
 
                     int wildcard_match_distance = 0;
                     bool matched_wildcard = false;

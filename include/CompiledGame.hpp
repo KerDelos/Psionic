@@ -71,7 +71,7 @@ struct CompiledGame{
         virtual void GetAllPrimaryObjects(vector<weak_ptr<PrimaryObject>>& p_objects, bool only_get_unique_objects = true ) override;
     };
 
-    
+
 
     struct GroupObject : public Object
     {
@@ -92,7 +92,7 @@ struct CompiledGame{
         virtual string to_string() const override {return "(AggregateObj)" + GroupObject::to_string();}
         virtual bool is_aggregate() const override {return true;};
         virtual bool defines(const shared_ptr<PrimaryObject>& p_obj) const override {return false;};
-        
+
     };
 
     struct PropertiesObject : public GroupObject
@@ -185,8 +185,8 @@ struct CompiledGame{
         bool is_late_rule = false;
         RuleDirection direction = RuleDirection::None;
 
-        Pattern match_pattern;
-        Pattern result_pattern;
+        vector<Pattern> match_pattern;
+        vector<Pattern> result_pattern;
 
         vector<CommandType> commands;
 
@@ -198,7 +198,7 @@ struct CompiledGame{
         vector<Rule> rules;
     };
 
-    
+
 
     struct WinCondition
     {
@@ -219,8 +219,8 @@ struct CompiledGame{
         vector<Cell> cells;
     };
 
-    
-    
+
+
     PreludeInfo prelude_info;
     set<shared_ptr<Object>> objects;
     weak_ptr<Object> player_object;

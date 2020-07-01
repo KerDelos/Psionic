@@ -122,59 +122,67 @@ string CompiledGame::Rule::to_string() const
 
     result += enum_to_str(direction,to_rule_direction).value_or("Error") + " ";
 
-    result += "[";
-    bool first_time = true;
-    for(const auto& cell : match_pattern.cells)
+    for(const auto & pattern : match_pattern)
     {
-        if(!first_time)
+        result += "[";
+        bool first_time = true;
+        for(const auto& cell : pattern.cells)
         {
-            result += " | ";
-        }
-        else
-        {
-            first_time = false;
-        }
-
-        if(cell.is_wildcard_cell)
-        {
-            result += "...";
-        }
-        else
-        {
-            for(const auto& cell_content : cell.content)
+            if(!first_time)
             {
-                result += enum_to_str(cell_content.second,to_entity_rule_info).value_or("Error") + " " + cell_content.first->identifier +" ";
+                result += " | ";
+            }
+            else
+            {
+                first_time = false;
+            }
+
+            if(cell.is_wildcard_cell)
+            {
+                result += "...";
+            }
+            else
+            {
+                for(const auto& cell_content : cell.content)
+                {
+                    result += enum_to_str(cell_content.second,to_entity_rule_info).value_or("Error") + " " + cell_content.first->identifier +" ";
+                }
+            }
+
+
+        }
+        result += "] ";
+    }
+    result += "-> ";
+    for(const auto & pattern : result_pattern)
+    {
+        result += "[";
+        bool first_time = true;
+        for(const auto& cell : pattern.cells)
+        {
+            if(!first_time)
+            {
+                result += " | ";
+            }
+            else
+            {
+                first_time = false;
+            }
+
+            if(cell.is_wildcard_cell)
+            {
+                result += "...";
+            }
+            else
+            {
+                for(const auto& cell_content : cell.content)
+                {
+                    result += enum_to_str(cell_content.second,to_entity_rule_info).value_or("Error") + " "  + cell_content.first->identifier + " " ;
+                }
             }
         }
-
-
+        result += "] ";
     }
-    result += "] -> [";
-    first_time = true;
-    for(const auto& cell : result_pattern.cells)
-    {
-        if(!first_time)
-        {
-            result += " | ";
-        }
-        else
-        {
-            first_time = false;
-        }
-
-        if(cell.is_wildcard_cell)
-        {
-            result += "...";
-        }
-        else
-        {
-            for(const auto& cell_content : cell.content)
-            {
-                result += enum_to_str(cell_content.second,to_entity_rule_info).value_or("Error") + " "  + cell_content.first->identifier + " " ;
-            }
-        }
-    }
-    result += "] ";
 
     for(const auto& command : commands)
     {

@@ -477,26 +477,27 @@ void Compiler::compile_rules(const vector<Token<ParsedGame::RulesTokenType>>& p_
         WaitingForLeftPatternStart,
         WaitingForLeftPatternObjectModifierOrIdentifierOrSyntax,
         WaitingForLeftPatternObjectIdentifier,
-        WaitingForArrow,
+        WaitingForArrowOrLeftPatternStart,
         WaitingForRightPatternStart,
         WaitingForRightPatternObjectModifierOrIdentifierOrSyntax,
         WaitingForRightPatternObjectIdentifier,
+        WaitingForCommandOrReturnOrRightPatternStart,
         WaitingForCommandOrReturn,
     };
 
     RuleCompilingState state = RuleCompilingState::WaitingForLateOrDirectionOrLeftPatternStart;
 
     CompiledGame::Rule current_rule;
-    int current_cell_idx = 0;
     CompiledGame::EntityRuleInfo cached_entity_info = CompiledGame::EntityRuleInfo::None;
 
     auto reset_temp_data = [&](){
         current_rule = CompiledGame::Rule();
-        current_rule.match_pattern.cells.push_back(CompiledGame::RuleCell());
-        current_rule.result_pattern.cells.push_back(CompiledGame::RuleCell());
+        current_rule.match_pattern.push_back(CompiledGame::Pattern());
+        current_rule.result_pattern.push_back(CompiledGame::Pattern());
+        current_rule.match_pattern[0].cells.push_back(CompiledGame::RuleCell());
+        current_rule.result_pattern[0].cells.push_back(CompiledGame::RuleCell());
 
         cached_entity_info = CompiledGame::EntityRuleInfo::None;
-        current_cell_idx = 0;
     };
 
     reset_temp_data();
@@ -573,7 +574,7 @@ void Compiler::compile_rules(const vector<Token<ParsedGame::RulesTokenType>>& p_
             case RuleCompilingState::WaitingForLeftPatternObjectModifierOrIdentifierOrSyntax:
                 if(token.token_type == RulesToken::Dots)
                 {
-                    const CompiledGame::RuleCell& cur_cell = current_rule.match_pattern.cells[current_cell_idx];
+                    const CompiledGame::RuleCell& cur_cell = current_rule.match_pattern.back().cells.back();
                     if(cur_cell.is_wildcard_cell)
                     {
                         detect_error(token, "cannot have mutliple \"...\" in the same cell.");
@@ -584,17 +585,16 @@ void Compiler::compile_rules(const vector<Token<ParsedGame::RulesTokenType>>& p_
                     }
                     else
                     {
-                        current_rule.match_pattern.cells[current_cell_idx].is_wildcard_cell = true;
+                        current_rule.match_pattern.back().cells.back().is_wildcard_cell = true;
                     }
                 }
                 else if(token.token_type == RulesToken::Bar)
                 {
-                    current_rule.match_pattern.cells.push_back(CompiledGame::RuleCell());
-                    ++current_cell_idx;
+                    current_rule.match_pattern.back().cells.push_back(CompiledGame::RuleCell());
                 }
                 else if(token.token_type == RulesToken::RightBracket)
                 {
-                    state = RuleCompilingState::WaitingForArrow;
+                    state = RuleCompilingState::WaitingForArrowOrLeftPatternStart;
                 }
                 else if(token_to_entity_rule_info.find(token.token_type) != token_to_entity_rule_info.end())
                 {
@@ -608,7 +608,7 @@ void Compiler::compile_rules(const vector<Token<ParsedGame::RulesTokenType>>& p_
                     {
                         shared_ptr<CompiledGame::Object> obj_ptr = get_obj_by_id(token.str_value).lock();
 
-                        CompiledGame::RuleCell& cur_cel = current_rule.match_pattern.cells[current_cell_idx];
+                        CompiledGame::RuleCell& cur_cel = current_rule.match_pattern.back().cells.back();
                         if( cur_cel.content.find(obj_ptr) != cur_cel.content.end())
                         {
                             detect_error(token, "cannot add twice the same object in a cell.");
@@ -639,7 +639,7 @@ void Compiler::compile_rules(const vector<Token<ParsedGame::RulesTokenType>>& p_
 
                         shared_ptr<CompiledGame::Object> obj_ptr = get_obj_by_id(token.str_value).lock();
 
-                        CompiledGame::RuleCell& cur_cel = current_rule.match_pattern.cells[current_cell_idx];
+                        CompiledGame::RuleCell& cur_cel = current_rule.match_pattern.back().cells.back();
                         if( cur_cel.content.find(obj_ptr) != cur_cel.content.end())
                         {
                             detect_error(token, "cannot add twice the same object in a cell.");
@@ -661,15 +661,20 @@ void Compiler::compile_rules(const vector<Token<ParsedGame::RulesTokenType>>& p_
             break;
             //------------------------------------------------------------------
 
-            case RuleCompilingState::WaitingForArrow:
+            case RuleCompilingState::WaitingForArrowOrLeftPatternStart:
                 if(token.token_type == RulesToken::Arrow)
                 {
                     state = RuleCompilingState::WaitingForRightPatternStart;
-                    current_cell_idx = 0;
+                }
+                else if(token.token_type == RulesToken::LeftBracket)
+                {
+                    state = RuleCompilingState::WaitingForLeftPatternObjectModifierOrIdentifierOrSyntax;
+                    current_rule.match_pattern.push_back(CompiledGame::Pattern());
+                    current_rule.match_pattern.back().cells.push_back(CompiledGame::RuleCell());
                 }
                 else
                 {
-                    detect_error(token, "expecting ->");
+                    detect_error(token, "expecting -> or [");
                 }
             break;
             //------------------------------------------------------------------
@@ -689,7 +694,7 @@ void Compiler::compile_rules(const vector<Token<ParsedGame::RulesTokenType>>& p_
             case RuleCompilingState::WaitingForRightPatternObjectModifierOrIdentifierOrSyntax:
                 if(token.token_type == RulesToken::Dots)
                 {
-                    const CompiledGame::RuleCell& cur_cell = current_rule.result_pattern.cells[current_cell_idx];
+                    const CompiledGame::RuleCell& cur_cell = current_rule.result_pattern.back().cells.back();
                     if(cur_cell.is_wildcard_cell)
                     {
                         detect_error(token, "cannot have mutliple \"...\" in the same cell.");
@@ -700,17 +705,16 @@ void Compiler::compile_rules(const vector<Token<ParsedGame::RulesTokenType>>& p_
                     }
                     else
                     {
-                        current_rule.result_pattern.cells[current_cell_idx].is_wildcard_cell = true;
+                        current_rule.result_pattern.back().cells.back().is_wildcard_cell = true;
                     }
                 }
                 else if(token.token_type == RulesToken::Bar)
                 {
-                    ++current_cell_idx;
-                    current_rule.result_pattern.cells.push_back(CompiledGame::RuleCell());
+                    current_rule.result_pattern.back().cells.push_back(CompiledGame::RuleCell());
                 }
                 else if(token.token_type == RulesToken::RightBracket)
                 {
-                    state = RuleCompilingState::WaitingForCommandOrReturn;
+                    state = RuleCompilingState::WaitingForCommandOrReturnOrRightPatternStart;
                 }
                 else if(token_to_entity_rule_info.find(token.token_type) != token_to_entity_rule_info.end())
                 {
@@ -724,7 +728,7 @@ void Compiler::compile_rules(const vector<Token<ParsedGame::RulesTokenType>>& p_
                     {
                         shared_ptr<CompiledGame::Object> obj_ptr = get_obj_by_id(token.str_value).lock();
 
-                        CompiledGame::RuleCell& cur_cel = current_rule.result_pattern.cells[current_cell_idx];
+                        CompiledGame::RuleCell& cur_cel = current_rule.result_pattern.back().cells.back();
                         if( cur_cel.content.find(obj_ptr) != cur_cel.content.end())
                         {
                             detect_error(token, "cannot add twice the same object in a cell.");
@@ -753,7 +757,7 @@ void Compiler::compile_rules(const vector<Token<ParsedGame::RulesTokenType>>& p_
                     {
                         shared_ptr<CompiledGame::Object> obj_ptr = get_obj_by_id(token.str_value).lock();
 
-                        CompiledGame::RuleCell& cur_cel = current_rule.result_pattern.cells[current_cell_idx];
+                        CompiledGame::RuleCell& cur_cel = current_rule.result_pattern.back().cells.back();
                         if( cur_cel.content.find(obj_ptr) != cur_cel.content.end())
                         {
                             detect_error(token, "cannot add twice the same object in a cell.");
@@ -774,6 +778,17 @@ void Compiler::compile_rules(const vector<Token<ParsedGame::RulesTokenType>>& p_
                 }
             break;
             //------------------------------------------------------------------
+
+            case RuleCompilingState::WaitingForCommandOrReturnOrRightPatternStart:
+                if(token.token_type == RulesToken::LeftBracket)
+                {
+                    current_rule.result_pattern.push_back(CompiledGame::Pattern());
+                    current_rule.result_pattern.back().cells.push_back(CompiledGame::RuleCell());
+                    state = RuleCompilingState::WaitingForRightPatternObjectModifierOrIdentifierOrSyntax;
+                    break;
+                }
+
+            //!!!! INTENTIONAL FALLTHROUGH !!!!
 
             case RuleCompilingState::WaitingForCommandOrReturn:
                 if(token.token_type == RulesToken::Return)
