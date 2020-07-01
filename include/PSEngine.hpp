@@ -65,6 +65,13 @@ public:
         Right,
     };
 
+    struct PatternMatchInformation
+    {
+        vector<int> wildcard_match_distances;
+        int x =-1;
+        int y =-1;
+    };
+
     struct ObjectDelta
     {
         shared_ptr<CompiledGame::PrimaryObject> object;
@@ -96,8 +103,7 @@ public:
     struct RuleApplicationDelta
     {
         AbsoluteDirection rule_direction;
-        int origin_x = -1;
-        int origin_y = -1;
+        vector<PatternMatchInformation> match_infos;
         vector<CellDelta> cell_deltas;
 
         friend bool operator==(const RuleApplicationDelta& lhs, const RuleApplicationDelta& rhs){
@@ -230,6 +236,8 @@ protected:
     bool check_win_conditions();
     bool check_win_condition(const CompiledGame::WinCondition& p_win_condition);
 
+    vector<PatternMatchInformation> match_pattern(const CompiledGame::Pattern& p_pattern, AbsoluteDirection p_rule_application_direction);
+
     bool does_rule_cell_matches_cell(const CompiledGame::RuleCell& p_rule_cell, const Cell* p_cell, AbsoluteDirection p_rule_application_direction);
 
     set<AbsoluteDirection> get_absolute_directions_from_rule_direction(CompiledGame::RuleDirection p_rule_direction);
@@ -239,7 +247,7 @@ protected:
 
     bool get_move_destination_coord(int p_origin_x, int p_origin_y, ObjectMoveType p_move_type, int& p_out_dest_x, int& p_out_dest_y);
 
-    RuleApplicationDelta compute_rule_delta(const CompiledGame::Rule& p_rule, const Cell& p_origin_cell, AbsoluteDirection p_rule_app_dir, const vector<int>& p_wildcard_match_distances);
+    RuleApplicationDelta compute_rule_delta(const CompiledGame::Rule& p_rule, AbsoluteDirection p_rule_app_dir, const vector<PatternMatchInformation>& p_pattern_match_infos);
 
     Cell* get_cell_from(int p_origin_x, int p_origin_y, int p_distance, AbsoluteDirection p_direction);
     Cell* get_cell_at(int p_x, int p_y);

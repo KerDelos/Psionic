@@ -185,8 +185,8 @@ struct CompiledGame{
         bool is_late_rule = false;
         RuleDirection direction = RuleDirection::None;
 
-        vector<Pattern> match_pattern;
-        vector<Pattern> result_pattern;
+        vector<Pattern> match_patterns;
+        vector<Pattern> result_patterns;
 
         vector<CommandType> commands;
 

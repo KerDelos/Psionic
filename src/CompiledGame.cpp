@@ -122,7 +122,7 @@ string CompiledGame::Rule::to_string() const
 
     result += enum_to_str(direction,to_rule_direction).value_or("Error") + " ";
 
-    for(const auto & pattern : match_pattern)
+    for(const auto & pattern : match_patterns)
     {
         result += "[";
         bool first_time = true;
@@ -154,7 +154,7 @@ string CompiledGame::Rule::to_string() const
         result += "] ";
     }
     result += "-> ";
-    for(const auto & pattern : result_pattern)
+    for(const auto & pattern : result_patterns)
     {
         result += "[";
         bool first_time = true;
