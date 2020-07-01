@@ -23,7 +23,7 @@ std::optional<CompiledGame> Compiler::compile_game(const ParsedGame& p_parsed_ga
     compile_prelude(p_parsed_game.prelude_tokens);
     compile_objects(p_parsed_game.objects_tokens);
     compile_legend(p_parsed_game.legend_tokens);
- 
+
     retrieve_background_objects();
     retrieve_player_object();
 
@@ -147,12 +147,12 @@ void Compiler::compile_prelude(const vector<Token<ParsedGame::PreludeTokenType>>
             {
                 detect_error(token,"Internal error, probably missing a case in the prelude compiler.");
             }
-            
+
 
             last_token = ParsedGame::PreludeTokenType::None;
 
             break;
-        
+
         case ParsedGame::PreludeTokenType::None:
         default:
             detect_error(token,"Unexpected prelude token.");
@@ -309,7 +309,7 @@ void Compiler::compile_legend(const vector<Token<ParsedGame::LegendTokenType>>& 
                             m_compiled_game.objects.insert(obj);
                         }
                         break;
-                    
+
                     default:
                         detect_error(token, "this should never happen and suggest a compiler error in Compiler::compile_legend.");
                         break;
@@ -408,7 +408,7 @@ void Compiler::compile_collision_layers(const vector<Token<ParsedGame::Collision
                 }
             }
             break;
-        
+
         default:
             break;
         }
@@ -461,7 +461,7 @@ void Compiler::compile_rules(const vector<Token<ParsedGame::RulesTokenType>>& p_
     };
 
     static const vector<RulesToken> syntax_tokens = {
-        RulesToken::LATE, 
+        RulesToken::LATE,
         RulesToken::LeftBracket,
         RulesToken::RightBracket,
         RulesToken::Bar,
@@ -509,7 +509,7 @@ void Compiler::compile_rules(const vector<Token<ParsedGame::RulesTokenType>>& p_
         }
 
         //token.print(ParsedGame::to_rules_token_type);
-        
+
         switch(state)
         {
             case RuleCompilingState::WaitingForLateOrDirectionOrLeftPatternStart:
@@ -585,7 +585,7 @@ void Compiler::compile_rules(const vector<Token<ParsedGame::RulesTokenType>>& p_
                     else
                     {
                         current_rule.match_pattern.cells[current_cell_idx].is_wildcard_cell = true;
-                    } 
+                    }
                 }
                 else if(token.token_type == RulesToken::Bar)
                 {
@@ -657,7 +657,7 @@ void Compiler::compile_rules(const vector<Token<ParsedGame::RulesTokenType>>& p_
                 else
                 {
                     detect_error(token, "was expecting an object identifier.");
-                } 
+                }
             break;
             //------------------------------------------------------------------
 
@@ -701,7 +701,7 @@ void Compiler::compile_rules(const vector<Token<ParsedGame::RulesTokenType>>& p_
                     else
                     {
                         current_rule.result_pattern.cells[current_cell_idx].is_wildcard_cell = true;
-                    } 
+                    }
                 }
                 else if(token.token_type == RulesToken::Bar)
                 {
@@ -771,7 +771,7 @@ void Compiler::compile_rules(const vector<Token<ParsedGame::RulesTokenType>>& p_
                 else
                 {
                     detect_error(token, "was expecting and object identifier.");
-                }  
+                }
             break;
             //------------------------------------------------------------------
 
@@ -790,8 +790,8 @@ void Compiler::compile_rules(const vector<Token<ParsedGame::RulesTokenType>>& p_
                     {
                         m_compiled_game.rules.push_back(current_rule);
                     }
-                    
-                    
+
+
                     reset_temp_data();
 
                     state = RuleCompilingState::WaitingForLateOrDirectionOrLeftPatternStart;
@@ -803,7 +803,7 @@ void Compiler::compile_rules(const vector<Token<ParsedGame::RulesTokenType>>& p_
                 else
                 {
                     detect_error(token, "expecting command or return.");
-                }      
+                }
             break;
             //------------------------------------------------------------------
 
@@ -854,7 +854,7 @@ void Compiler::compile_win_conditions(const vector<Token<ParsedGame::WinConditio
                     else
                     {
                         detect_error(token, "malformed rule");
-                    }      
+                    }
                 }
             }
             break;
@@ -889,16 +889,16 @@ void Compiler::compile_win_conditions(const vector<Token<ParsedGame::WinConditio
                 case ParsedGame::WinConditionsTokenType::SOME:
                     current_win_condition.type = CompiledGame::WinConditionType::Some;
                     break;
-                
+
                 default:
                     detect_error(token,"should not happen");
                     break;
                 }
-                
+
             }
-            
+
             break;
-        
+
         case ParsedGame::WinConditionsTokenType::ON:
             //todo this token is not yet explicitely required by the compiler
             break;
@@ -949,7 +949,7 @@ void Compiler::compile_levels(const vector<Token<ParsedGame::LevelsTokenType>>& 
             else
             {
                 if(compiling_level_first_line)
-                { 
+                {
                     //we just finished parsing the first line of the level
                     compiling_level_first_line = false;
                     current_level.width = current_tiles_number_on_row;
@@ -964,7 +964,7 @@ void Compiler::compile_levels(const vector<Token<ParsedGame::LevelsTokenType>>& 
                 current_tiles_number_on_row = 0;
                 ++current_height;
             }
-            
+
             break;
 
         case ParsedGame::LevelsTokenType::LevelTile:
@@ -999,7 +999,7 @@ void Compiler::compile_levels(const vector<Token<ParsedGame::LevelsTokenType>>& 
                 ++current_tiles_number_on_row;
             }
             break;
-        
+
         default:
             //ignore message tokens for now
             break;
@@ -1011,7 +1011,7 @@ void Compiler::compile_levels(const vector<Token<ParsedGame::LevelsTokenType>>& 
     {
         current_level.height = current_height;
         m_compiled_game.levels.push_back(current_level);
-    }         
+    }
 
     m_logger->log(PSLogger::LogType::Log, m_compiler_log_cat, "Finished Compiling Levels");
 }
@@ -1065,7 +1065,7 @@ bool Compiler::check_identifier_validity(const string& p_id, int p_identifier_li
     }
     else if(found_existing_object == m_compiled_game.objects.end() && p_should_already_exist)
     {
-        detect_error(p_identifier_line_numbler,"trying to reference an Object that does not exists !");
+        detect_error(p_identifier_line_numbler,"trying to reference Object \"" + p_id + "\" but it does not exists !");
         return false;
     }
 
