@@ -167,19 +167,190 @@ void Compiler::compile_prelude(const vector<Token<ParsedGame::PreludeTokenType>>
 //todo compile color and drawing information
 void Compiler::compile_objects(const vector<Token<ParsedGame::ObjectsTokenType>>& p_objects_tokens)
 {
+    enum class ObjectCompilingState{
+        WaitingForIdentifier,
+        WaitingForColor,
+        WaitingForColorOrPixelOrIdentifier,
+        WaitingForPixel,
+    };
+
+    const int PIXEL_NUMBER = 25;
+
     m_logger->log(PSLogger::LogType::Log, m_compiler_log_cat, "Compiling Objects");
+
+    ObjectCompilingState state = ObjectCompilingState::WaitingForIdentifier;
+
+    shared_ptr<CompiledGame::PrimaryObject> last_object;
+    CompiledGame::ObjectGraphicData graphic_data;
 
     for(auto& token : p_objects_tokens)
     {
-        if(token.token_type == ParsedGame::ObjectsTokenType::Literal)
+        switch(state)
         {
-            if(!check_identifier_validity(token.str_value, token.token_line, false))
-            {
-                continue;
-            }
+            case ObjectCompilingState::WaitingForIdentifier:
+                if(token.token_type == ParsedGame::ObjectsTokenType::Literal)
+                {
+                    if(!check_identifier_validity(token.str_value, token.token_line, false))
+                    {
+                        detect_error(token, "invalid identifier");
+                        break;
+                    }
 
-            shared_ptr<CompiledGame::PrimaryObject> obj( new CompiledGame::PrimaryObject(token.str_value));
-            m_compiled_game.objects.insert(obj);
+                    shared_ptr<CompiledGame::PrimaryObject> obj( new CompiledGame::PrimaryObject(token.str_value));
+                    m_compiled_game.objects.insert(obj);
+                    last_object = obj;
+                    state = ObjectCompilingState::WaitingForColor;
+                }
+                else
+                {
+                    detect_error(token, "was expecting identifier");
+                }
+
+            break;
+            //----------------------------------
+
+            case ObjectCompilingState::WaitingForColor:
+                if(token.token_type == ParsedGame::ObjectsTokenType::ColorHexCode)
+                {
+                    CompiledGame::Color color;
+                    color.hexcode = token.str_value;
+                    state = ObjectCompilingState::WaitingForColorOrPixelOrIdentifier;
+                    graphic_data.colors.push_back(color);
+                }
+                else if(token.token_type == ParsedGame::ObjectsTokenType::ColorName)
+                {
+                    CompiledGame::Color color;
+                    color.name = str_to_enum(token.str_value, CompiledGame::to_color_name).value_or(CompiledGame::Color::ColorName::None);
+                    if(color.name == CompiledGame::Color::ColorName::None)
+                    {
+                        detect_error(token,"invalid color name");
+                    }
+                    state = ObjectCompilingState::WaitingForColorOrPixelOrIdentifier;
+                    graphic_data.colors.push_back(color);
+                }
+                else
+                {
+                    detect_error(token, "was expecting a color name or hexcode");
+                }
+
+            break;
+            //----------------------------------
+
+            case ObjectCompilingState::WaitingForColorOrPixelOrIdentifier:
+                if(token.token_type == ParsedGame::ObjectsTokenType::ColorHexCode)
+                {
+                    CompiledGame::Color color;
+                    color.hexcode = token.str_value;
+                    state = ObjectCompilingState::WaitingForColorOrPixelOrIdentifier;
+                    graphic_data.colors.push_back(color);
+                }
+                else if(token.token_type == ParsedGame::ObjectsTokenType::ColorName)
+                {
+                    CompiledGame::Color color;
+                    color.name = str_to_enum(token.str_value, CompiledGame::to_color_name).value_or(CompiledGame::Color::ColorName::None);
+                    if(color.name == CompiledGame::Color::ColorName::None)
+                    {
+                        detect_error(token,"invalid color name");
+                    }
+                    state = ObjectCompilingState::WaitingForColorOrPixelOrIdentifier;
+                    graphic_data.colors.push_back(color);
+                }
+                else if(token.token_type == ParsedGame::ObjectsTokenType::Literal)
+                {
+                    if(graphic_data.pixels.size() == PIXEL_NUMBER || graphic_data.pixels.size() == 0)
+                    {
+                        m_compiled_game.graphics_data[last_object] = graphic_data;
+                        graphic_data = CompiledGame::ObjectGraphicData();
+                    }
+                    else
+                    {
+                        detect_error(token,"too many or too few pixels");
+                        break;
+                    }
+
+                    if(!check_identifier_validity(token.str_value, token.token_line, false))
+                    {
+                        detect_error(token, "invalid identifier");
+                        break;
+                    }
+
+                    shared_ptr<CompiledGame::PrimaryObject> obj( new CompiledGame::PrimaryObject(token.str_value));
+                    m_compiled_game.objects.insert(obj);
+                    last_object = obj;
+                    state = ObjectCompilingState::WaitingForColor;
+
+                }
+                else if(token.token_type == ParsedGame::ObjectsTokenType::Pixel)
+                {
+                    if(token.str_value == ".")
+                    {
+                        graphic_data.pixels.push_back(-1); //-1 stands for transparent
+                    }
+                    else
+                    {
+                        int pixel_value = -1;
+                        try
+                        {
+                            pixel_value = stoi(token.str_value);
+                        }
+                        catch(...)
+                        {
+                            detect_error(token, "improper pixel value");
+                            break;
+                        }
+                        graphic_data.pixels.push_back(pixel_value);
+                    }
+
+                    state = ObjectCompilingState::WaitingForPixel;
+                }
+                else
+                {
+                    detect_error(token, "was expecting a color, a pixel or and identifier");
+                }
+            break;
+            //----------------------------------
+
+            case ObjectCompilingState::WaitingForPixel:
+                if(token.token_type == ParsedGame::ObjectsTokenType::Pixel)
+                {
+                    if(token.str_value == ".")
+                    {
+                        graphic_data.pixels.push_back(-1); //-1 stands for transparent
+                    }
+                    else
+                    {
+                        int pixel_value = -1;
+                        try
+                        {
+                            pixel_value = stoi(token.str_value);
+                        }
+                        catch(...)
+                        {
+                            detect_error(token, "improper pixel value");
+                            break;
+                        }
+                        graphic_data.pixels.push_back(pixel_value);
+                    }
+
+                    if(graphic_data.pixels.size() == 25)
+                    {
+                        m_compiled_game.graphics_data[last_object] = graphic_data;
+                        graphic_data = CompiledGame::ObjectGraphicData();
+                        state = ObjectCompilingState::WaitingForIdentifier;
+                    }
+
+                }
+                else
+                {
+                    detect_error(token, "was expecting a pixel");
+                }
+            break;
+            //----------------------------------
+
+            default:
+                detect_error(token,"should never happen");
+            break;
+            //----------------------------------
         }
     }
 

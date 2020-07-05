@@ -13,7 +13,7 @@ struct Token{
 	string str_value;
 	int token_line;
 
-	Token(E p_token_type, string p_literal, int p_line) 
+	Token(E p_token_type, string p_literal, int p_line)
 	: token_type(p_token_type), str_value(p_literal), token_line(p_line){}
 
 	void print(map<string,E, ci_less> p_enum_to_str) const {
@@ -29,33 +29,6 @@ struct ParsedGame{
         Author,
         Homepage,
         Literal,
-    };
-
-    enum class ObjectsColor{
-        None,
-        Black,
-        White,
-        LightGray,
-        Gray,
-        DarkGray,
-        Grey,
-        Red,
-        DarkRed,
-        LightRed,
-        Brown,
-        DarkBrown,
-        LightBrown,
-        Orange,
-        Yellow,
-        Green,
-        DarkGreen,
-        LightGreen,
-        Blue,
-        LightBlue,
-        DarkBlue,
-        Purple,
-        Pink,
-        Transparent,
     };
 
     enum class ObjectsTokenType{
@@ -147,7 +120,6 @@ struct ParsedGame{
 
     static map<string,PreludeTokenType, ci_less> to_prelude_token_type;
     static map<string,ObjectsTokenType, ci_less> to_objects_token_type;
-    static map<string,ObjectsColor, ci_less> to_objects_color;
     static map<string,LegendTokenType, ci_less> to_legend_token_type;
     static map<string,CollisionLayersTokenType, ci_less> to_collision_layers_token_type;
     static map<string,RulesTokenType, ci_less> to_rules_token_type;

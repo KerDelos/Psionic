@@ -18,33 +18,6 @@ map<string,ParsedGame::ObjectsTokenType, ci_less> ParsedGame::to_objects_token_t
 	{"Pixel", ObjectsTokenType::Pixel},
 };
 
-map<string,ParsedGame::ObjectsColor, ci_less> ParsedGame::to_objects_color = {
-	{"None", ObjectsColor::None},
-	{"Black", ObjectsColor::Black},
-	{"White", ObjectsColor::White},
-	{"LightGray", ObjectsColor::LightGray},
-	{"Gray", ObjectsColor::Gray},
-	{"DarkGray", ObjectsColor::DarkGray},
-	{"Grey", ObjectsColor::Grey},
-	{"Red", ObjectsColor::Red},
-	{"DarkRed", ObjectsColor::DarkRed},
-	{"LightRed", ObjectsColor::LightRed},
-	{"Brown", ObjectsColor::Brown},
-	{"DarkBrown", ObjectsColor::DarkBrown},
-	{"LightBrown", ObjectsColor::LightBrown},
-	{"Orange", ObjectsColor::Orange},
-	{"Yellow", ObjectsColor::Yellow},
-	{"Green", ObjectsColor::Green},
-	{"DarkGreen", ObjectsColor::DarkGreen},
-	{"LightGreen", ObjectsColor::LightGreen},
-	{"Blue", ObjectsColor::Blue},
-	{"LightBlue", ObjectsColor::LightBlue},
-	{"DarkBlue", ObjectsColor::DarkBlue},
-	{"Purple", ObjectsColor::Purple},
-	{"Pink", ObjectsColor::Pink},
-	{"Transparent", ObjectsColor::Transparent},
-};
-
 map<string,ParsedGame::LegendTokenType, ci_less> ParsedGame::to_legend_token_type = {
 	{"None", LegendTokenType::None},
 	{"Identifier", LegendTokenType::Identifier},
@@ -149,7 +122,7 @@ void ParsedGame::print_parsed_game(bool p_print_prelude,
             token.print(to_objects_token_type);
         }
     }
-    
+
     if(p_print_legend)
     {
         cout << "Parsed Legend tokens :\n";
@@ -158,7 +131,7 @@ void ParsedGame::print_parsed_game(bool p_print_prelude,
             token.print(to_legend_token_type);
         }
     }
-    
+
     if(p_print_collision_layers)
     {
         cout << "Parsed collision layers tokens :\n";
@@ -167,7 +140,7 @@ void ParsedGame::print_parsed_game(bool p_print_prelude,
             token.print(to_collision_layers_token_type);
         }
     }
-    
+
     if(p_print_rules)
     {
         cout << "Parsed rules tokens :\n";
@@ -176,7 +149,7 @@ void ParsedGame::print_parsed_game(bool p_print_prelude,
             token.print(to_rules_token_type);
         }
     }
-    
+
     if(p_print_win_conditions)
     {
         cout << "Parsed win conditions tokens :\n";
@@ -185,7 +158,7 @@ void ParsedGame::print_parsed_game(bool p_print_prelude,
             token.print(to_win_conditions_token_type);
         }
     }
-    
+
     if(p_print_levels)
     {
         cout << "Parsed levels tokens :\n";

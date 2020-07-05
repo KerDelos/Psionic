@@ -54,6 +54,33 @@ map<string,CompiledGame::WinConditionType, ci_less> CompiledGame::to_win_conditi
 	{"No", WinConditionType::No},
 };
 
+map<string,CompiledGame::Color::ColorName, ci_less> CompiledGame::to_color_name = {
+	{"None", Color::ColorName::None},
+	{"Black", Color::ColorName::Black},
+	{"White", Color::ColorName::White},
+	{"LightGray", Color::ColorName::LightGray},
+	{"Gray", Color::ColorName::Gray},
+	{"DarkGray", Color::ColorName::DarkGray},
+	{"Grey", Color::ColorName::Grey},
+	{"Red", Color::ColorName::Red},
+	{"DarkRed", Color::ColorName::DarkRed},
+	{"LightRed", Color::ColorName::LightRed},
+	{"Brown", Color::ColorName::Brown},
+	{"DarkBrown", Color::ColorName::DarkBrown},
+	{"LightBrown", Color::ColorName::LightBrown},
+	{"Orange", Color::ColorName::Orange},
+	{"Yellow", Color::ColorName::Yellow},
+	{"Green", Color::ColorName::Green},
+	{"DarkGreen", Color::ColorName::DarkGreen},
+	{"LightGreen", Color::ColorName::LightGreen},
+	{"Blue", Color::ColorName::Blue},
+	{"LightBlue", Color::ColorName::LightBlue},
+	{"DarkBlue", Color::ColorName::DarkBlue},
+	{"Purple", Color::ColorName::Purple},
+	{"Pink", Color::ColorName::Pink},
+	{"Transparent", Color::ColorName::Transparent},
+};
+
 void CompiledGame::PrimaryObject::GetAllPrimaryObjects(vector<weak_ptr<PrimaryObject>>& p_objects, bool only_get_unique_objects /* = true*/) {
     if(only_get_unique_objects)
     {
@@ -195,6 +222,7 @@ string CompiledGame::Rule::to_string() const
 void CompiledGame::print()
 {
     bool p_print_objects = true;
+    bool p_print_graphic_data = true;
     bool p_print_collision_layers = true;
     bool p_print_rules = true;
     bool p_print_win_conditions = true;
@@ -206,6 +234,25 @@ void CompiledGame::print()
         for(const auto& obj : objects)
         {
             cout << obj->to_string() << "\n";
+        }
+    }
+
+    if(p_print_graphic_data)
+    {
+        cout << "Compiled graphic data :\n";
+        for(const auto& data : graphics_data)
+        {
+            cout << data.first->to_string() << " : ";
+            for(const auto& color : data.second.colors)
+            {
+                cout << (color.name == Color::ColorName::None ? color.hexcode : enum_to_str(color.name,to_color_name).value_or("ERROR")) << ", ";
+            }
+            cout << " : ";
+            for(const auto& pixel : data.second.pixels)
+            {
+                cout << to_string(pixel) << ", ";
+            }
+            cout << "\n";
         }
     }
 

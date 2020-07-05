@@ -160,11 +160,44 @@ struct CompiledGame{
         Again,
     };
 
+    struct Color
+    {
+        enum class ColorName{
+            None,
+            Black,
+            White,
+            LightGray,
+            Gray,
+            DarkGray,
+            Grey,
+            Red,
+            DarkRed,
+            LightRed,
+            Brown,
+            DarkBrown,
+            LightBrown,
+            Orange,
+            Yellow,
+            Green,
+            DarkGreen,
+            LightGreen,
+            Blue,
+            LightBlue,
+            DarkBlue,
+            Purple,
+            Pink,
+            Transparent,
+        };
+
+        ColorName name;
+        string hexcode; //todo change the format
+    };
 
     static map<string,CommandType, ci_less> to_command_type;
     static map<string,RuleDirection, ci_less> to_rule_direction;
     static map<string,EntityRuleInfo, ci_less> to_entity_rule_info;
     static map<string,WinConditionType, ci_less> to_win_condition_type;
+    static map<string,Color::ColorName, ci_less> to_color_name;
 
     struct RuleCell
     {
@@ -220,8 +253,14 @@ struct CompiledGame{
     };
 
 
+    struct ObjectGraphicData
+    {
+        vector<Color> colors;
+        vector<int> pixels;
+    };
 
     PreludeInfo prelude_info;
+    map<shared_ptr<PrimaryObject>,ObjectGraphicData> graphics_data;
     set<shared_ptr<Object>> objects;
     weak_ptr<Object> player_object;
     vector<shared_ptr<CollisionLayer>> collision_layers;

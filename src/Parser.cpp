@@ -1,4 +1,5 @@
 #include "Parser.hpp"
+#include "CompiledGame.hpp"
 
 
 #include <iostream>
@@ -122,7 +123,7 @@ std::optional<ParsedGame> Parser::parse_file()
 		m_logger->log(PSLogger::LogType::Error, m_parser_log_cat, "Invalid text provider. Parsing will fail.");
 		return nullopt;
 	}
-	
+
 }
 
 void Parser::try_change_file_section(FileSection p_new_file_section)
@@ -168,7 +169,7 @@ void Parser::parse_prelude()
 					line_beggining = false;
 				break;
 			}
-			
+
 	}
 
 	m_logger->log(PSLogger::LogType::Log, m_parser_log_cat, "Finished prelude parsing");
@@ -266,7 +267,7 @@ void Parser::parse_objects()
 							FileSection fs = str_to_enum(parsed_word, to_file_section).value_or(FileSection::None);
 							try_change_file_section(fs);
 						}
-						else if(str_to_enum(parsed_word, ParsedGame::to_objects_color).value_or(ParsedGame::ObjectsColor::None) != ParsedGame::ObjectsColor::None)
+						else if(str_to_enum(parsed_word, CompiledGame::to_color_name).value_or(CompiledGame::Color::ColorName::None) != CompiledGame::Color::ColorName::None)
 						{
 							m_parsed_game.objects_tokens.push_back(Token<ParsedGame::ObjectsTokenType>(ParsedGame::ObjectsTokenType::ColorName, parsed_word, m_line_counter));
 						}
@@ -274,10 +275,10 @@ void Parser::parse_objects()
 						{
 							m_parsed_game.objects_tokens.push_back(Token<ParsedGame::ObjectsTokenType>(ParsedGame::ObjectsTokenType::Literal, parsed_word, m_line_counter));
 						}
-					}	
+					}
 				break;
 			}
-			
+
 	}
 
 	m_logger->log(PSLogger::LogType::Log, m_parser_log_cat, "Finished objects parsing");
@@ -321,7 +322,7 @@ void Parser::parse_legend()
 					else
 					{
 						m_parsed_game.legend_tokens.push_back(Token<ParsedGame::LegendTokenType>(ParsedGame::LegendTokenType::Equal,"",m_line_counter));
-					}	
+					}
 					break;
 				default:
 					string parsed_word = parse_word();
@@ -343,7 +344,7 @@ void Parser::parse_legend()
 					}
 				break;
 			}
-			
+
 	}
 
 	m_logger->log(PSLogger::LogType::Log, m_parser_log_cat, "Finished legend parsing");
@@ -377,7 +378,7 @@ void Parser::parse_sounds()
 					}
 				break;
 			}
-			
+
 	}
 
 	m_logger->log(PSLogger::LogType::Log, m_parser_log_cat, "Finished sounds parsing");
@@ -419,10 +420,10 @@ void Parser::parse_collision_layers()
 					{
 						m_parsed_game.collision_layers_tokens.push_back(Token<ParsedGame::CollisionLayersTokenType>(ParsedGame::CollisionLayersTokenType::Identifier,parsed_word,m_line_counter));
 					}
-					
+
 				break;
 			}
-			
+
 	}
 
 	m_logger->log(PSLogger::LogType::Log, m_parser_log_cat, "Finished collision layers parsing");
@@ -476,7 +477,7 @@ void Parser::parse_rules()
 				case '^':
 				case '<':
 					if(m_text_provider->peek() == ' ')
-					{					
+					{
 						ParsedGame::RulesTokenType token_type = ParsedGame::RulesTokenType::RelativeRight;
 						if(m_text_provider->get_current_char() == '<')
 						{
@@ -491,7 +492,7 @@ void Parser::parse_rules()
 							token_type = ParsedGame::RulesTokenType::RelativeDown;
 						}
 						else
-						{ 
+						{
 							//token_type is already set for > char
 						}
 						m_parsed_game.rules_tokens.push_back(Token<ParsedGame::RulesTokenType>(token_type,"",m_line_counter));
@@ -513,7 +514,7 @@ void Parser::parse_rules()
 					parse_rules_word();
 				break;
 			}
-			
+
 	}
 
 	m_logger->log(PSLogger::LogType::Log, m_parser_log_cat, "Finished rules parsing");
@@ -640,7 +641,7 @@ void Parser::parse_win_conditions()
 					}
 				break;
 			}
-			
+
 	}
 
 	m_logger->log(PSLogger::LogType::Log, m_parser_log_cat, "Finished win conditions parsing");
@@ -649,7 +650,7 @@ void Parser::parse_win_conditions()
 void Parser::parse_levels()
 {
 	m_logger->log(PSLogger::LogType::Log, m_parser_log_cat, "Starting levels parsing");
-	bool is_line_beggining = false; 
+	bool is_line_beggining = false;
 	while(m_text_provider->is_valid() && m_current_file_section == FileSection::Levels)
 	{
 			//cout << m_current_char << " ";
@@ -671,7 +672,7 @@ void Parser::parse_levels()
 					m_line_counter ++;
 					break;
 				default:
-					if((m_text_provider->get_current_char() != 'm' && m_text_provider->get_current_char() != 'M') 
+					if((m_text_provider->get_current_char() != 'm' && m_text_provider->get_current_char() != 'M')
 					|| (!is_line_beggining || !try_parse_levels_message()))
 					{
 						string tile = "";
@@ -681,7 +682,7 @@ void Parser::parse_levels()
 					is_line_beggining = false;
 				break;
 			}
-			
+
 	}
 
 	m_logger->log(PSLogger::LogType::Log, m_parser_log_cat, "Finished levels parsing");
@@ -807,7 +808,7 @@ void Parser::parse_comment(int p_comment_level /*= 0*/)
 		case ')':
 			continue_parsing = false;
 			break;
-		
+
 		default:
 			break;
 		}
