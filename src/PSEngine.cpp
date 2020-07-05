@@ -695,7 +695,10 @@ PSEngine::RuleApplicationDelta PSEngine::compute_rule_delta(const CompiledGame::
 
             }
 
-            delta.cell_deltas.push_back(cell_delta);
+            if(cell_delta.deltas.size() > 0)
+            {
+                delta.cell_deltas.push_back(cell_delta);
+            }
         }
     }
     return delta;
