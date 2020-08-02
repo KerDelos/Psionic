@@ -19,6 +19,7 @@ struct CompiledGame{
         optional<string> title;
         optional<string> author;
         optional<string> homepage;
+        optional<float> realtime_interval;
     };
 
     struct AliasObject;

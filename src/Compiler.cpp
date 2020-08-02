@@ -113,6 +113,7 @@ void Compiler::compile_prelude(const vector<Token<ParsedGame::PreludeTokenType>>
         case ParsedGame::PreludeTokenType::Title:
         case ParsedGame::PreludeTokenType::Author:
         case ParsedGame::PreludeTokenType::Homepage:
+        case ParsedGame::PreludeTokenType::RealtimeInterval:
             if(last_token != ParsedGame::PreludeTokenType::None)
             {
                 detect_error(token,"Unexpected token "+ enum_to_str(token.token_type, ParsedGame::to_prelude_token_type).value_or("ERROR") + " here.");
@@ -143,9 +144,20 @@ void Compiler::compile_prelude(const vector<Token<ParsedGame::PreludeTokenType>>
             {
                 m_compiled_game.prelude_info.homepage = token.str_value;
             }
+            else if(last_token == ParsedGame::PreludeTokenType::RealtimeInterval)
+            {
+                try
+                {
+                    m_compiled_game.prelude_info.realtime_interval = stof(token.str_value);
+                }
+                catch(const std::exception& e)
+                {
+                   detect_error(token, "was expecting a float value after realtime_interval but found \"" +token.str_value+ "\".");
+                }
+            }
             else
             {
-                detect_error(token,"Internal error, probably missing a case in the prelude compiler.");
+                detect_error(token,"Internal error, probably missing a case in the prelude compiler for \"" +enum_to_str(last_token, ParsedGame::to_prelude_token_type).value_or("ERROR")+ "\" associated literal.");
             }
 
 
@@ -155,7 +167,7 @@ void Compiler::compile_prelude(const vector<Token<ParsedGame::PreludeTokenType>>
 
         case ParsedGame::PreludeTokenType::None:
         default:
-            detect_error(token,"Unexpected prelude token.");
+            detect_error(token,"Unexpected prelude token ("+enum_to_str(token.token_type, ParsedGame::to_prelude_token_type).value_or("ERROR")+":"+ token.str_value +").");
             break;
         }
     }

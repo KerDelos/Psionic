@@ -28,6 +28,12 @@ optional<CompiledGame> compile_game(string file_path)
 
 void parse_and_send_game_input(PSEngine& p_engine, char input)
 {
+    if(input == 't')
+    {
+        p_engine.tick(0.4);
+        p_engine.print_game_state();
+        return;
+    }
     if(input == 'r')
     {
         p_engine.restart_level();

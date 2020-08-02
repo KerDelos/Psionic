@@ -1,6 +1,7 @@
 
 #include <iostream>
 #include <vector>
+#include <functional>
 
 #include "PSEngine.hpp"
 
@@ -113,7 +114,7 @@ void PSEngine::Load_first_level()
     load_level_internal(0);
 }
 
-void PSEngine::receive_input(InputType p_input)
+optional<vector<PSEngine::SubturnHistory>> PSEngine::receive_input(InputType p_input)
 {
     m_operation_history.push_back(Operation(OperationType::Input,p_input));
 
@@ -141,7 +142,7 @@ void PSEngine::receive_input(InputType p_input)
         break;
     default:
         detect_error("invalid input type.");
-        return;
+        return nullopt;
     }
 
     //marking player with input
@@ -156,7 +157,30 @@ void PSEngine::receive_input(InputType p_input)
         }
     }
 
-    next_turn();
+    return next_turn();
+}
+
+optional<vector<PSEngine::SubturnHistory>> PSEngine::tick(float p_delta_time)
+{
+    if(!m_compiled_game.prelude_info.realtime_interval.has_value())
+    {
+        detect_error("Trying to tick the engine but the loaded puzzlescript doesn't have realtime setup.");
+        return nullopt;
+    }
+
+    float realtime_interval = m_compiled_game.prelude_info.realtime_interval.value();
+
+    m_current_tick_time_elapsed += p_delta_time;
+
+    optional<vector<PSEngine::SubturnHistory>> result = nullopt;
+
+    while(m_current_tick_time_elapsed >= realtime_interval)
+    {
+        m_current_tick_time_elapsed -= realtime_interval;
+        result = next_turn();
+    }
+
+    return result; //todo ? only yhe last one will be return if several turns happened during the same tick
 }
 
 void PSEngine::restart_level()
@@ -182,7 +206,7 @@ bool PSEngine::undo()
 }
 
 
-void PSEngine::next_turn()
+optional<vector<PSEngine::SubturnHistory>> PSEngine::next_turn()
 {
     Level last_turn_save = m_current_level;
     vector<SubturnHistory> last_turn_history_save = m_turn_history;
@@ -210,7 +234,7 @@ void PSEngine::next_turn()
                 {
                     m_current_level = last_turn_save;
                     m_turn_history = last_turn_history_save;
-                    return;
+                    return nullopt; //todo shouldn't we want to know what happened that lead to a cancel ?
                 }
                 else if (command == CompiledGame::CommandType::Again)
                 {
@@ -236,6 +260,8 @@ void PSEngine::next_turn()
     {
         m_is_level_won = true;
     }
+
+    return optional<vector<PSEngine::SubturnHistory>>(m_turn_history);
 }
 
 bool PSEngine::next_subturn()
@@ -1378,6 +1404,7 @@ void PSEngine::load_level_internal(int p_level_idx)
     }
     m_level_state_stack.clear();
     m_is_level_won = false;
+    m_current_tick_time_elapsed = 0;
 
     CompiledGame::Level compiled_level = m_compiled_game.levels[p_level_idx];
 

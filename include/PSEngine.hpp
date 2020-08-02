@@ -188,7 +188,9 @@ public:
 
     void load_level(int p_level_idx);
 
-    void receive_input(InputType p_input);
+    optional<vector<SubturnHistory>> receive_input(InputType p_input);
+
+    optional<vector<SubturnHistory>> tick(float p_delta_time);
 
     void restart_level();
     bool undo();
@@ -217,7 +219,7 @@ protected:
 
     void load_level_internal(int p_level_idx);
 
-    void next_turn();
+    optional<vector<PSEngine::SubturnHistory>> next_turn();
 
     bool next_subturn();
 
@@ -274,6 +276,8 @@ protected:
     map<string,string> m_single_char_obj_alias_cache;
 
     bool m_is_level_won = false;
+
+    float m_current_tick_time_elapsed = 0;
 
     Config m_config;
 };

@@ -7,6 +7,7 @@ map<string,ParsedGame::PreludeTokenType, ci_less> ParsedGame::to_prelude_token_t
 	{"Title", PreludeTokenType::Title},
 	{"Author", PreludeTokenType::Author},
 	{"Homepage", PreludeTokenType::Homepage},
+	{"realtime_interval", PreludeTokenType::RealtimeInterval},
 	{"Literal", PreludeTokenType::Literal},
 };
 

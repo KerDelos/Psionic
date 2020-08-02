@@ -28,6 +28,7 @@ struct ParsedGame{
         Title,
         Author,
         Homepage,
+        RealtimeInterval,
         Literal,
     };
 
