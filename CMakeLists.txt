@@ -8,3 +8,10 @@ include_directories(${PROJECT_SOURCE_DIR}/include)
 add_library(psionic src/PSEngine.cpp src/CompiledGame.cpp src/Compiler.cpp src/ParsedGame.cpp src/Parser.cpp src/PSLogger.cpp src/TextProvider.cpp)
 add_executable(psionic_main src/main.cpp)
 target_link_libraries(psionic_main psionic)
+
+target_include_directories(psionic
+    PUBLIC
+      $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    PRIVATE
+      src
+)
