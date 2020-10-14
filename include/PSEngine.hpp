@@ -55,6 +55,7 @@ public:
 
     struct PatternMatchInformation
     {
+        vector<int> wildcard_pattern_cell_indexes;
         vector<int> wildcard_match_distances;
         int x =-1;
         int y =-1;
@@ -62,28 +63,19 @@ public:
 
     struct ObjectDelta
     {
+        int cell_x = -1;
+        int cell_y = -1;
         shared_ptr<CompiledGame::PrimaryObject> object;
         CompiledGame::ObjectDeltaType type;
 
-        ObjectDelta(shared_ptr<CompiledGame::PrimaryObject> p_object, CompiledGame::ObjectDeltaType p_type) : object(p_object), type(p_type){};
+        ObjectDelta(int p_cell_x, int p_cell_y, shared_ptr<CompiledGame::PrimaryObject> p_object, CompiledGame::ObjectDeltaType p_type)
+        :cell_x(p_cell_x), cell_y(p_cell_y), object(p_object), type(p_type){};
 
         friend bool operator==(const ObjectDelta& lhs, const ObjectDelta& rhs){
             bool result = lhs.object == rhs.object;
             result &= lhs.type == rhs.type;
-            return result;
-        }
-    };
-
-    struct CellDelta
-    {
-        int x = -1;
-        int y = -1;
-        vector<ObjectDelta> deltas; //order is important since we can have an appear and a move on the same object
-
-        friend bool operator==(const CellDelta& lhs, const CellDelta& rhs){
-            bool result = lhs.x == rhs.x;
-            result &= lhs.y == rhs.y;
-            result &= lhs.deltas == rhs.deltas;
+            result &= lhs.cell_x == rhs.cell_x;
+            result &= lhs.cell_y == rhs.cell_y;
             return result;
         }
     };
@@ -92,10 +84,10 @@ public:
     {
         AbsoluteDirection rule_direction;
         vector<PatternMatchInformation> match_infos;
-        vector<CellDelta> cell_deltas;
+        vector<ObjectDelta> object_deltas;
 
         friend bool operator==(const RuleApplicationDelta& lhs, const RuleApplicationDelta& rhs){
-            return lhs.cell_deltas == rhs.cell_deltas;
+            return lhs.object_deltas == rhs.object_deltas;
         }
     };
 
@@ -238,7 +230,7 @@ protected:
 
     bool get_move_destination_coord(int p_origin_x, int p_origin_y, ObjectMoveType p_move_type, int& p_out_dest_x, int& p_out_dest_y);
 
-    RuleApplicationDelta compute_rule_delta(const CompiledGame::Rule& p_rule, AbsoluteDirection p_rule_app_dir, const vector<PatternMatchInformation>& p_pattern_match_infos);
+    RuleApplicationDelta translate_rule_delta(const CompiledGame::Rule& p_rule, AbsoluteDirection p_rule_app_dir, const vector<PatternMatchInformation>& p_pattern_match_infos);
 
     Cell* get_cell_from(int p_origin_x, int p_origin_y, int p_distance, AbsoluteDirection p_direction);
     Cell* get_cell_at(int p_x, int p_y);

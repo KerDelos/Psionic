@@ -233,9 +233,10 @@ struct CompiledGame{
 
     struct Delta
     {
-        Delta(int p_delta_match_index, int p_delta_application_index, shared_ptr<Object> p_object, ObjectDeltaType p_delta_type)
-        :delta_match_index(p_delta_match_index), delta_application_index(p_delta_application_index), object(p_object), delta_type(p_delta_type){}
+        Delta(int p_pattern_index, int p_delta_match_index, int p_delta_application_index, shared_ptr<Object> p_object, ObjectDeltaType p_delta_type)
+        :pattern_index(p_pattern_index),delta_match_index(p_delta_match_index), delta_application_index(p_delta_application_index), object(p_object), delta_type(p_delta_type){}
 
+        int pattern_index = -1;
         int delta_match_index = -1; //to which cell of the pattern should the object be matched
         int delta_application_index; //to which cell is the pattern applied
         //the last two properties exists because in some case (such as [ A | ] -> [ | A] where A is a group)
@@ -261,7 +262,7 @@ struct CompiledGame{
 
         vector<Delta> deltas;
 
-        string to_string() const;
+        string to_string(bool with_deltas =false) const;
     };
 
     struct RuleGroup

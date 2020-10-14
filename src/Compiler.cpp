@@ -1307,20 +1307,20 @@ void Compiler::verify_rules_and_compute_deltas(vector<CompiledGame::Rule>& p_rul
                     {
                         if(match_pair.second != CompiledGame::EntityRuleInfo::No)
                         {
-                            rule.deltas.push_back(CompiledGame::Delta(c,c,match_pair.first,CompiledGame::ObjectDeltaType::Disappear));
+                            rule.deltas.push_back(CompiledGame::Delta(p,c,c,match_pair.first,CompiledGame::ObjectDeltaType::Disappear));
                         }
                     }
                     else if(equivalent_result_pair->second != match_pair.second)
                     {
                         if(equivalent_result_pair->second == CompiledGame::EntityRuleInfo::No)
                         {
-                            rule.deltas.push_back(CompiledGame::Delta(c,c,match_pair.first,CompiledGame::ObjectDeltaType::Disappear));
+                            rule.deltas.push_back(CompiledGame::Delta(p,c,c,match_pair.first,CompiledGame::ObjectDeltaType::Disappear));
                         }
                         else
                         {
                             if(match_pair.second == CompiledGame::EntityRuleInfo::No)
                             {
-                                rule.deltas.push_back(CompiledGame::Delta(c,c,match_pair.first,CompiledGame::ObjectDeltaType::Appear));
+                                rule.deltas.push_back(CompiledGame::Delta(p,c,c,match_pair.first,CompiledGame::ObjectDeltaType::Appear));
                             }
 
                             if(equivalent_result_pair->second == CompiledGame::EntityRuleInfo::Moving
@@ -1336,13 +1336,13 @@ void Compiler::verify_rules_and_compute_deltas(vector<CompiledGame::Rule>& p_rul
                             else if(equivalent_result_pair->second == CompiledGame::EntityRuleInfo::None
                             || equivalent_result_pair->second == CompiledGame::EntityRuleInfo::Stationary  )
                             {
-                                rule.deltas.push_back(CompiledGame::Delta(c,c,match_pair.first,CompiledGame::ObjectDeltaType::Stationary));
+                                rule.deltas.push_back(CompiledGame::Delta(p,c,c,match_pair.first,CompiledGame::ObjectDeltaType::Stationary));
                             }
                             else
                             {
                                 optional<CompiledGame::ObjectDeltaType> delta_type = str_to_enum(enum_to_str(equivalent_result_pair->second,CompiledGame::to_entity_rule_info).value_or("ERROR"), CompiledGame::to_object_delta_type);
                                 assert(delta_type.has_value());
-                                rule.deltas.push_back(CompiledGame::Delta(c,c,match_pair.first,delta_type.value()));
+                                rule.deltas.push_back(CompiledGame::Delta(p,c,c,match_pair.first,delta_type.value()));
                             }
                         }
                     }
@@ -1372,13 +1372,13 @@ void Compiler::verify_rules_and_compute_deltas(vector<CompiledGame::Rule>& p_rul
 
                         if(result_pair.second == CompiledGame::EntityRuleInfo::No)
                         {
-                            CompiledGame::Delta delta(c,c,result_pair.first,CompiledGame::ObjectDeltaType::Disappear);
+                            CompiledGame::Delta delta(p,c,c,result_pair.first,CompiledGame::ObjectDeltaType::Disappear);
                             delta.is_optional = true;
                             rule.deltas.push_back(delta);
                         }
                         else
                         {
-                            rule.deltas.push_back(CompiledGame::Delta(c,c,result_pair.first,CompiledGame::ObjectDeltaType::Appear));
+                            rule.deltas.push_back(CompiledGame::Delta(p,c,c,result_pair.first,CompiledGame::ObjectDeltaType::Appear));
 
                             if(result_pair.second == CompiledGame::EntityRuleInfo::None
                             || result_pair.second == CompiledGame::EntityRuleInfo::Stationary )
@@ -1399,7 +1399,7 @@ void Compiler::verify_rules_and_compute_deltas(vector<CompiledGame::Rule>& p_rul
                             {
                                 optional<CompiledGame::ObjectDeltaType> delta_type = str_to_enum(enum_to_str(result_pair.second,CompiledGame::to_entity_rule_info).value_or("ERROR"), CompiledGame::to_object_delta_type);
                                 assert(delta_type.has_value());
-                                rule.deltas.push_back(CompiledGame::Delta(c,c,result_pair.first,delta_type.value()));
+                                rule.deltas.push_back(CompiledGame::Delta(p,c,c,result_pair.first,delta_type.value()));
                             }
                         }
                     }

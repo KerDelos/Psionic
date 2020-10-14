@@ -153,7 +153,7 @@ bool CompiledGame::CollisionLayer::is_object_on_layer(weak_ptr<PrimaryObject> p_
     return false;
 }
 
-string CompiledGame::Rule::to_string() const
+string CompiledGame::Rule::to_string(bool with_deltas /*=false*/) const
 {
     string result = "";
 
@@ -231,12 +231,17 @@ string CompiledGame::Rule::to_string() const
     {
         result += enum_to_str(command,to_command_type).value_or("Error") + " ";
     }
-    result += "\n";
 
-    for(const auto& delta : deltas)
+    if(with_deltas)
     {
-        result += "\t"+std::to_string(delta.delta_match_index) + "," + std::to_string(delta.delta_application_index)+" : " +delta.object->identifier+" "+enum_to_str( delta.delta_type,to_object_delta_type).value_or("Error")+"\n";
+        result += "\n";
+
+        for(const auto& delta : deltas)
+        {
+            result += "\t"+std::to_string(delta.pattern_index) + ","+std::to_string(delta.delta_match_index) + "," + std::to_string(delta.delta_application_index)+" : " +delta.object->identifier+" "+enum_to_str( delta.delta_type,to_object_delta_type).value_or("Error")+"\n";
+        }
     }
+
 
     return result;
 }
@@ -297,12 +302,12 @@ void CompiledGame::print()
         cout << "Compiled Rules :\n";
         for(const auto& rule : rules)
         {
-            cout << rule.to_string() << "\n";
+            cout << rule.to_string(true) << "\n";
         }
         cout << "Compiled late Rules :\n";
         for(const auto& rule : late_rules)
         {
-            cout << rule.to_string() << "\n";
+            cout << rule.to_string(true) << "\n";
         }
     }
 

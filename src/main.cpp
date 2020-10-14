@@ -93,8 +93,6 @@ void load_and_run_game(string file_path)
     CompiledGame compiled_game = compiled_game_opt.value();
     compiled_game.print();
 
-    return;
-
     PSEngine engine;
     engine.load_game(compiled_game);
     engine.Load_first_level();

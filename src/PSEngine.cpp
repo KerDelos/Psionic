@@ -2,6 +2,7 @@
 #include <iostream>
 #include <vector>
 #include <functional>
+#include <assert.h>
 
 #include "PSEngine.hpp"
 
@@ -484,249 +485,81 @@ bool PSEngine::does_rule_cell_matches_cell(const CompiledGame::CellRule& p_rule_
     return true;
 }
 
-PSEngine::RuleApplicationDelta PSEngine::compute_rule_delta(const CompiledGame::Rule& p_rule, AbsoluteDirection p_rule_app_dir,const vector<PatternMatchInformation>& p_pattern_match_infos)
+PSEngine::RuleApplicationDelta PSEngine::translate_rule_delta(const CompiledGame::Rule& p_rule, AbsoluteDirection p_rule_app_dir,const vector<PatternMatchInformation>& p_pattern_match_infos)
 {
     RuleApplicationDelta delta;
 
-    // delta.match_infos = p_pattern_match_infos;
-    // delta.rule_direction = p_rule_app_dir;
+    delta.match_infos = p_pattern_match_infos;
+    delta.rule_direction = p_rule_app_dir;
 
-    // for(int p = 0; p < p_rule.match_patterns.size(); ++p)
-    // {
-    //     PatternMatchInformation current_pattern_match_infos = p_pattern_match_infos[p];
-    //     auto wildcard_match_distances_iterator = current_pattern_match_infos.wildcard_match_distances.begin();
+    auto get_cell = [this](int cell_index, PatternMatchInformation infos, AbsoluteDirection apply_dir)
+    {
+        int offset = 0;
+        assert(infos.wildcard_match_distances.size() == infos.wildcard_pattern_cell_indexes.size());
+        for(int i = 0;i < infos.wildcard_match_distances.size(); ++i)
+        {
+            if(infos.wildcard_pattern_cell_indexes[i] < cell_index)
+            {
+                offset += infos.wildcard_match_distances[i];
+            }
+        }
+        return get_cell_from(infos.x,infos.y,offset+cell_index,apply_dir);
+    };
 
-    //     int board_distance = -1;
-    //     for(int i = 0; i < p_rule.match_patterns[p].cells.size(); ++i)
-    //     {
-    //         ++board_distance; //incrementing it here to prevent it from being incorrect (would happen if a continue statement was added somewhere without incrementing the value)
+    for(auto rule_delta : p_rule.deltas)
+    {
+        PatternMatchInformation current_pattern_match_infos = p_pattern_match_infos[rule_delta.pattern_index];
+        Cell* match_cell = get_cell(rule_delta.delta_match_index, current_pattern_match_infos, p_rule_app_dir);
+        Cell* apply_cell = get_cell(rule_delta.delta_application_index, current_pattern_match_infos, p_rule_app_dir);
+        assert(match_cell != nullptr && apply_cell != nullptr);
 
-    //         CellDelta cell_delta;
+        shared_ptr<CompiledGame::PrimaryObject> matched_primary_obj;
 
-    //         const auto& match_cell = p_rule.match_patterns[p].cells[i];
-    //         const auto& result_cell = p_rule.result_patterns[p].cells[i];
+        //todo could not always checking if the object matches cause some problems ? probably too late to find out tonight
+        if(rule_delta.object->as_primary_object() != nullptr)
+        {
+            matched_primary_obj = rule_delta.object->as_primary_object();
+        }
+        else
+        {
+            for(const auto& level_cell_pair : match_cell->objects)
+            {
+                if(rule_delta.object->defines( level_cell_pair.first))
+                {
+                    matched_primary_obj = level_cell_pair.first;
+                }
+            }
+        }
 
-    //         if(match_cell.is_wildcard_cell)
-    //         {
-    //             //the -1 is to compensate the increment at the top of the loop.
-    //             //Because we moved one cell further in the rule but not necessarily one cell on the board since "..." could correspond to 0 cell
-    //             board_distance += *wildcard_match_distances_iterator -1;
-    //             ++wildcard_match_distances_iterator;
-    //             continue;
-    //         }
+        if(matched_primary_obj)
+        {
+            CompiledGame::ObjectDeltaType delta_type = rule_delta.delta_type;
 
-    //         const Cell* level_cell = get_cell_from(current_pattern_match_infos.x, current_pattern_match_infos.y, board_distance, p_rule_app_dir);
+            //convert relative direction
+            if(delta_type == CompiledGame::ObjectDeltaType::RelativeUp
+            || delta_type == CompiledGame::ObjectDeltaType::RelativeDown
+            || delta_type == CompiledGame::ObjectDeltaType::RelativeLeft
+            || delta_type == CompiledGame::ObjectDeltaType::RelativeRight)
+            {
+                //todo this is some really ugly conversion code
+                CompiledGame::EntityRuleInfo rule_info = str_to_enum(enum_to_str(delta_type,CompiledGame::to_object_delta_type).value_or("error"),CompiledGame::to_entity_rule_info).value_or(CompiledGame::EntityRuleInfo::None);
+                set<ObjectMoveType> move_types = convert_entity_rule_info_to_allowed_move_types(rule_info,p_rule_app_dir).value();
+                assert(move_types.size() == 1);
+                delta_type = str_to_enum(enum_to_str(*move_types.begin(),to_object_move_type).value_or("error"),CompiledGame::to_object_delta_type).value_or(CompiledGame::ObjectDeltaType::None);
+                assert(delta_type != CompiledGame::ObjectDeltaType::None);
+            }
 
-    //         cell_delta.x = level_cell->x;
-    //         cell_delta.y = level_cell->y;
+            ObjectDelta obj_delta(apply_cell->x,apply_cell->y,matched_primary_obj,delta_type);
+            delta.object_deltas.push_back(obj_delta);
+        }
+        else if( !rule_delta.is_optional)
+        {
+            detect_error("was not able to find a match");//todo add more information
+        }
+    }
 
-    //         for(const auto& match_content_pair : match_cell.content)
-    //         {
-    //             shared_ptr<CompiledGame::PrimaryObject> matched_primary_obj;
-    //             for(const auto& level_cell_pair : level_cell->objects)
-    //             {
-    //                 if(match_content_pair.first->defines( level_cell_pair.first))
-    //                 {
-    //                     matched_primary_obj = level_cell_pair.first;
-    //                 }
-    //             }
-
-
-    //             const auto& result_equivalent_pair = result_cell.content.find(match_content_pair.first);
-
-    //             if(result_equivalent_pair == result_cell.content.end())
-    //             {
-    //                 if(match_content_pair.second != CompiledGame::EntityRuleInfo::No)
-    //                 {
-    //                     cell_delta.deltas.push_back(ObjectDelta(matched_primary_obj,ObjectDeltaType::Disappear));
-    //                 }
-    //             }
-    //             else if(match_content_pair.second != result_equivalent_pair->second)
-    //             {
-    //                 shared_ptr<CompiledGame::PrimaryObject> appearing_obj = nullptr;
-
-    //                 if(match_content_pair.second == CompiledGame::EntityRuleInfo::No)
-    //                 {
-    //                     appearing_obj = match_content_pair.first->as_primary_object();
-    //                     if(appearing_obj)
-    //                     {
-    //                         cell_delta.deltas.push_back(ObjectDelta(appearing_obj,ObjectDeltaType::Appear));
-    //                     }
-    //                     else
-    //                     {
-    //                         //todo support aggregate objects ?
-    //                         detect_error("Trying to make a non primary object appear. This is ambiguous.");
-    //                         continue;
-    //                     }
-    //                 }
-    //                 else if(result_equivalent_pair->second == CompiledGame::EntityRuleInfo::No)
-    //                 {
-    //                     cell_delta.deltas.push_back(ObjectDelta(matched_primary_obj,ObjectDeltaType::Disappear));
-    //                     continue;
-    //                 }
-
-    //                 shared_ptr<CompiledGame::PrimaryObject> object_to_use_in_delta = matched_primary_obj;
-    //                 if(!object_to_use_in_delta)
-    //                 {
-    //                     object_to_use_in_delta = appearing_obj;
-    //                     if(!object_to_use_in_delta)
-    //                     {
-    //                         detect_error("should never happen, wasn't able to find the object for the delta");
-    //                     }
-    //                 }
-
-
-    //                 if(result_equivalent_pair->second == CompiledGame::EntityRuleInfo::Moving
-    //                 || result_equivalent_pair->second == CompiledGame::EntityRuleInfo::Parallel
-    //                 || result_equivalent_pair->second == CompiledGame::EntityRuleInfo::Perpendicular
-    //                 || result_equivalent_pair->second == CompiledGame::EntityRuleInfo::Vertical
-    //                 || result_equivalent_pair->second == CompiledGame::EntityRuleInfo::Horizontal
-    //                 || result_equivalent_pair->second == CompiledGame::EntityRuleInfo::Orthogonal)
-    //                 {
-    //                     //this would be an error since its ambiguous, a pass in the rule compilation should have detected that
-    //                     detect_error("ambiguous delta");
-    //                 }
-    //                 else if(result_equivalent_pair->second == CompiledGame::EntityRuleInfo::None
-    //                 || result_equivalent_pair->second == CompiledGame::EntityRuleInfo::Stationary  )
-    //                 {
-    //                     cell_delta.deltas.push_back(ObjectDelta(object_to_use_in_delta,ObjectDeltaType::Stationary));
-    //                 }
-    //                 else
-    //                 {
-    //                     //convert the relative movement to an absolute one if needed
-    //                     set<ObjectMoveType> move_types = convert_entity_rule_info_to_allowed_move_types(result_equivalent_pair->second,p_rule_app_dir).value();
-    //                     if(move_types.size() != 1)
-    //                     {
-    //                         detect_error("should not happen");
-    //                     }
-
-    //                     ObjectDeltaType delta_type = ObjectDeltaType::None;
-
-    //                     switch (*move_types.begin())
-    //                     {
-    //                     case ObjectMoveType::Up:
-    //                         delta_type = ObjectDeltaType::Up;
-    //                         break;
-    //                     case ObjectMoveType::Down:
-    //                         delta_type = ObjectDeltaType::Down;
-    //                         break;
-    //                     case ObjectMoveType::Left:
-    //                         delta_type = ObjectDeltaType::Left;
-    //                         break;
-    //                     case ObjectMoveType::Right:
-    //                         delta_type = ObjectDeltaType::Right;
-    //                         break;
-    //                     case ObjectMoveType::Action:
-    //                         delta_type = ObjectDeltaType::Action;
-    //                         break;
-    //                     default:
-    //                         detect_error("should not happen");
-    //                         break;
-    //                     }
-
-    //                     cell_delta.deltas.push_back(ObjectDelta(object_to_use_in_delta,delta_type));
-    //                 }
-
-    //             }
-    //             else
-    //             {
-    //                 //no delta to add since it's all similar
-    //             }
-    //         }
-
-    //         for(const auto& result_content_pair : result_cell.content)
-    //         {
-    //             const auto& match_equivalent_pair = match_cell.content.find(result_content_pair.first);
-    //             if(match_equivalent_pair != match_cell.content.end())
-    //             {
-    //                 //if we found the object in the match pattern then the deltas where already handled in the for loop above
-    //             }
-    //             else
-    //             {
-    //                 shared_ptr<CompiledGame::PrimaryObject> prim_obj = result_content_pair.first->as_primary_object();
-
-    //                 if(!prim_obj)//the object here must be a primary object, if not, it's ambiguous
-    //                 {
-    //                     detect_error("ambiguous object detected, please specify a primary object"); //this should be detected in the rule compilations
-    //                     continue;
-    //                 }
-
-    //                 if(result_content_pair.second == CompiledGame::EntityRuleInfo::No)
-    //                 {
-    //                     //todo maybe we should consider this as an optional disappear
-
-
-    //                     cell_delta.deltas.push_back(ObjectDelta(prim_obj,ObjectDeltaType::Disappear));
-    //                 }
-    //                 else
-    //                 {
-    //                     cell_delta.deltas.push_back(ObjectDelta(prim_obj,ObjectDeltaType::Appear));
-
-    //                     if(result_content_pair.second == CompiledGame::EntityRuleInfo::None
-    //                     || result_content_pair.second == CompiledGame::EntityRuleInfo::Stationary )
-    //                     {
-    //                         //we  consider None and Stationary to be handled by the appear delta
-    //                     }
-    //                     else if(result_content_pair.second == CompiledGame::EntityRuleInfo::Moving
-    //                     || result_content_pair.second == CompiledGame::EntityRuleInfo::Parallel
-    //                     || result_content_pair.second == CompiledGame::EntityRuleInfo::Perpendicular
-    //                     || result_content_pair.second == CompiledGame::EntityRuleInfo::Vertical
-    //                     || result_content_pair.second == CompiledGame::EntityRuleInfo::Horizontal
-    //                     || result_content_pair.second == CompiledGame::EntityRuleInfo::Orthogonal)
-    //                     {
-    //                         //this would be an error since its ambiguous, a pass in the rule compilation should have detected that
-    //                         detect_error("ambiguous delta");
-    //                     }
-    //                     else
-    //                     {
-    //                         //convert the relative movement to an absolute one if needed
-    //                         set<ObjectMoveType> move_types = convert_entity_rule_info_to_allowed_move_types(result_content_pair.second,p_rule_app_dir).value();
-    //                         if(move_types.size() != 1)
-    //                         {
-    //                             detect_error("should not happen");
-    //                         }
-
-    //                         ObjectDeltaType delta_type = ObjectDeltaType::None;
-
-    //                         switch (*move_types.begin())
-    //                         {
-    //                         case ObjectMoveType::Up:
-    //                             delta_type = ObjectDeltaType::Up;
-    //                             break;
-    //                         case ObjectMoveType::Down:
-    //                             delta_type = ObjectDeltaType::Down;
-    //                             break;
-    //                         case ObjectMoveType::Left:
-    //                             delta_type = ObjectDeltaType::Left;
-    //                             break;
-    //                         case ObjectMoveType::Right:
-    //                             delta_type = ObjectDeltaType::Right;
-    //                             break;
-    //                         case ObjectMoveType::Action:
-    //                             delta_type = ObjectDeltaType::Action;
-    //                             break;
-    //                         default:
-    //                             detect_error("should not happen");
-    //                             break;
-    //                         }
-
-    //                         cell_delta.deltas.push_back(ObjectDelta(prim_obj,delta_type));
-    //                     }
-
-    //                 }
-    //             }
-
-    //         }
-
-    //         if(cell_delta.deltas.size() > 0)
-    //         {
-    //             delta.cell_deltas.push_back(cell_delta);
-    //         }
-    //     }
-    // }
     return delta;
 }
-
 vector<PSEngine::PatternMatchInformation> PSEngine::match_pattern(const CompiledGame::Pattern& p_pattern, AbsoluteDirection p_rule_application_direction)
 {
     vector<PatternMatchInformation> match_results;
@@ -790,6 +623,7 @@ vector<PSEngine::PatternMatchInformation> PSEngine::match_pattern(const Compiled
                     ++ i;
 
                     current_match.wildcard_match_distances.push_back(wildcard_match_distance);
+                    current_match.wildcard_pattern_cell_indexes.push_back(i);
                 }
                 else
                 {
@@ -831,7 +665,7 @@ void PSEngine::apply_rule(const CompiledGame::Rule& p_rule)
         std::function<void(int,vector<PatternMatchInformation>)> compute_pattern_match_combinations = [&](int rule_pattern_index, vector<PatternMatchInformation> current_match_combination){
             if(rule_pattern_index >= p_rule.match_patterns.size())
             {
-                RuleApplicationDelta application_delta = compute_rule_delta(p_rule, rule_app_dir, current_match_combination);
+                RuleApplicationDelta application_delta = translate_rule_delta(p_rule, rule_app_dir, current_match_combination);
 
                 //do not add exactly identical deltas
                 //todo this could and should probably done by the compiler (altough maybe not all equalities could be caught by the compiler)
@@ -903,82 +737,84 @@ void PSEngine::apply_rule(const CompiledGame::Rule& p_rule)
 
 void PSEngine::apply_delta(const RuleApplicationDelta& p_delta)
 {
-    for(const auto& cell_delta : p_delta.cell_deltas)
+    for(const ObjectDelta& obj_delta : p_delta.object_deltas)
     {
-        Cell* cell =  get_cell_at(cell_delta.x,cell_delta.y);
+        Cell* cell =  get_cell_at(obj_delta.cell_x,obj_delta.cell_y);
 
-        for(const ObjectDelta& obj_delta : cell_delta.deltas)
+        if(!obj_delta.object)
         {
-            if(!obj_delta.object)
+            //should never happen, there's a nullptr object in a delta
+            assert(false);
+        }
+        else if(obj_delta.type == CompiledGame::ObjectDeltaType::None
+                || obj_delta.type == CompiledGame::ObjectDeltaType::RelativeDown
+                || obj_delta.type == CompiledGame::ObjectDeltaType::RelativeUp
+                || obj_delta.type == CompiledGame::ObjectDeltaType::RelativeLeft
+                || obj_delta.type == CompiledGame::ObjectDeltaType::RelativeRight)
+        {
+            assert(false);
+        }
+        else if(obj_delta.type == CompiledGame::ObjectDeltaType::Appear)
+        {
+            const auto& pair = cell->objects.find(obj_delta.object);
+            if(pair == cell->objects.end() )
             {
-                detect_error("should never happen, there's a nullptr object in a delta");
-            }
-            else if(obj_delta.type == CompiledGame::ObjectDeltaType::None)
-            {
-                detect_error("should not happen");
-            }
-            else if(obj_delta.type == CompiledGame::ObjectDeltaType::Appear)
-            {
-                const auto& pair = cell->objects.find(obj_delta.object);
-                if(pair == cell->objects.end() )
-                {
-                    cell->objects.insert(make_pair(obj_delta.object,ObjectMoveType::Stationary));
-                }
-                else
-                {
-                    string cell_coord_str = to_string(cell->x)+","+to_string(cell->y);
-                    detect_error("cannot add object " +obj_delta.object->identifier+ " since there's already one in the cell ("+cell_coord_str+")");
-                }
-                //todo check for collisions
-            }
-            else if(obj_delta.type == CompiledGame::ObjectDeltaType::Disappear)
-            {
-                const auto& pair = cell->objects.find(obj_delta.object);
-                if(pair != cell->objects.end() )
-                {
-                    cell->objects.erase(pair);
-                }
-                else
-                {
-                    string cell_coord_str = to_string(cell->x)+","+to_string(cell->y);
-                    detect_error("cannot delete object " +obj_delta.object->identifier+ " since it wasn't on the cell ("+cell_coord_str+")");
-                }
+                cell->objects.insert(make_pair(obj_delta.object,ObjectMoveType::Stationary));
             }
             else
             {
-               //all remaining possible deltas are movement deltas
-                ObjectMoveType move_type = ObjectMoveType::None;
-                if(obj_delta.type ==CompiledGame::ObjectDeltaType::Up)
-                {
-                    move_type = ObjectMoveType::Up;
-                }
-                else if(obj_delta.type ==CompiledGame::ObjectDeltaType::Down)
-                {
-                    move_type = ObjectMoveType::Down;
-                }
-                else if(obj_delta.type ==CompiledGame::ObjectDeltaType::Left)
-                {
-                    move_type = ObjectMoveType::Left;
-                }
-                else if(obj_delta.type ==CompiledGame::ObjectDeltaType::Right)
-                {
-                    move_type = ObjectMoveType::Right;
-                }
-                else if(obj_delta.type == CompiledGame::ObjectDeltaType::Action)
-                {
-                    move_type = ObjectMoveType::Action;
-                }
-                else if(obj_delta.type == CompiledGame::ObjectDeltaType::Stationary)
-                {
-                    move_type = ObjectMoveType::Stationary;
-                }
+                string cell_coord_str = to_string(cell->x)+","+to_string(cell->y);
+                detect_error("cannot add object " +obj_delta.object->identifier+ " since there's already one in the cell ("+cell_coord_str+")");
+            }
+            //todo check for collisions
+        }
+        else if(obj_delta.type == CompiledGame::ObjectDeltaType::Disappear)
+        {
+            const auto& pair = cell->objects.find(obj_delta.object);
+            if(pair != cell->objects.end() )
+            {
+                cell->objects.erase(pair);
+            }
+            else
+            {
+                string cell_coord_str = to_string(cell->x)+","+to_string(cell->y);
+                detect_error("cannot delete object " +obj_delta.object->identifier+ " since it wasn't on the cell ("+cell_coord_str+")");
+            }
+        }
+        else
+        {
+            //all remaining possible deltas are movement deltas
+            ObjectMoveType move_type = ObjectMoveType::None;
+            if(obj_delta.type ==CompiledGame::ObjectDeltaType::Up)
+            {
+                move_type = ObjectMoveType::Up;
+            }
+            else if(obj_delta.type ==CompiledGame::ObjectDeltaType::Down)
+            {
+                move_type = ObjectMoveType::Down;
+            }
+            else if(obj_delta.type ==CompiledGame::ObjectDeltaType::Left)
+            {
+                move_type = ObjectMoveType::Left;
+            }
+            else if(obj_delta.type ==CompiledGame::ObjectDeltaType::Right)
+            {
+                move_type = ObjectMoveType::Right;
+            }
+            else if(obj_delta.type == CompiledGame::ObjectDeltaType::Action)
+            {
+                move_type = ObjectMoveType::Action;
+            }
+            else if(obj_delta.type == CompiledGame::ObjectDeltaType::Stationary)
+            {
+                move_type = ObjectMoveType::Stationary;
+            }
 
 
-                const auto& pair = cell->objects.find(obj_delta.object);
-                if(pair != cell->objects.end() )
-                {
-                    pair->second = move_type;
-                }
+            const auto& pair = cell->objects.find(obj_delta.object);
+            if(pair != cell->objects.end() )
+            {
+                pair->second = move_type;
             }
         }
     }
@@ -1011,19 +847,10 @@ bool PSEngine::try_to_move_object(Cell& p_containing_cell, shared_ptr<CompiledGa
         }
         else
         {
-            if(pair->second == ObjectMoveType::None)
-            {
-                detect_error("an object move type is set to none, this should never happen");
-                return false;
-            }
+            assert(pair->second != ObjectMoveType::None); //an object move type is set to none, this should never happen
 
             AbsoluteDirection dir = str_to_enum(enum_to_str(pair->second,to_object_move_type).value_or("error"), to_absolute_direction).value_or(AbsoluteDirection::None);
-            if( dir == AbsoluteDirection::None)
-            {
-                detect_error("Could not convert ObjectMoveType to AbsoluteDirection. this should not happen");
-                pair->second = ObjectMoveType::Stationary;
-                return false;
-            }
+            assert(dir != AbsoluteDirection::None);//Could not convert ObjectMoveType to AbsoluteDirection. this should not happen
 
             if( Cell* dest_cell = get_cell_from(p_containing_cell.x,p_containing_cell.y,1,dir))
             {
@@ -1672,14 +1499,11 @@ void PSEngine::print_subturns_history() const
                     }
 
                     result += "\t" + rule_match_str + "\n";
-                    for(const auto& cell_delta : rule_app_delta.cell_deltas)
+                    for(const auto& object_delta : rule_app_delta.object_deltas)
                     {
-                        for(const auto& object_delta : cell_delta.deltas)
-                        {
-                            result += "\t\t" + to_string(cell_delta.x)+","+to_string(cell_delta.y)+" ";
-                            result += (object_delta.object.get() != nullptr ? object_delta.object->identifier : "nullptr") + " ";
-                            result += enum_to_str(object_delta.type,CompiledGame::to_object_delta_type).value_or("ERROR") + "\n";
-                        }
+                        result += "\t\t" + to_string(object_delta.cell_x)+","+to_string(object_delta.cell_y)+" ";
+                        result += (object_delta.object.get() != nullptr ? object_delta.object->identifier : "nullptr") + " ";
+                        result += enum_to_str(object_delta.type,CompiledGame::to_object_delta_type).value_or("ERROR") + "\n";
                     }
                 }
             }
