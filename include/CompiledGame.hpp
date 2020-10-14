@@ -194,13 +194,32 @@ struct CompiledGame{
         string hexcode; //todo change the format
     };
 
+
+    enum class ObjectDeltaType
+    {
+        None,
+        Appear,
+        Disappear,
+        Up,
+        Down,
+        Left,
+        Right,
+        RelativeUp,
+        RelativeDown,
+        RelativeLeft,
+        RelativeRight,
+        Stationary,
+        Action,
+    };
+
     static map<string,CommandType, ci_less> to_command_type;
     static map<string,RuleDirection, ci_less> to_rule_direction;
     static map<string,EntityRuleInfo, ci_less> to_entity_rule_info;
     static map<string,WinConditionType, ci_less> to_win_condition_type;
     static map<string,Color::ColorName, ci_less> to_color_name;
+    static map<string,ObjectDeltaType, ci_less> to_object_delta_type;
 
-    struct RuleCell
+    struct CellRule
     {
         bool is_wildcard_cell = false;
 
@@ -209,7 +228,23 @@ struct CompiledGame{
 
     struct Pattern
     {
-        vector<RuleCell> cells;
+        vector<CellRule> cells;
+    };
+
+    struct Delta
+    {
+        Delta(int p_delta_match_index, int p_delta_application_index, shared_ptr<Object> p_object, ObjectDeltaType p_delta_type)
+        :delta_match_index(p_delta_match_index), delta_application_index(p_delta_application_index), object(p_object), delta_type(p_delta_type){}
+
+        int delta_match_index = -1; //to which cell of the pattern should the object be matched
+        int delta_application_index; //to which cell is the pattern applied
+        //the last two properties exists because in some case (such as [ A | ] -> [ | A] where A is a group)
+        //the object must be found in the first cell of the pattern, disappear in the first cell, but appear in the second
+
+        shared_ptr<Object> object;
+        ObjectDeltaType delta_type = ObjectDeltaType::None;
+
+        bool is_optional = false;
     };
 
     struct Rule
@@ -223,6 +258,8 @@ struct CompiledGame{
         vector<Pattern> result_patterns;
 
         vector<CommandType> commands;
+
+        vector<Delta> deltas;
 
         string to_string() const;
     };

@@ -81,6 +81,22 @@ map<string,CompiledGame::Color::ColorName, ci_less> CompiledGame::to_color_name 
 	{"Transparent", Color::ColorName::Transparent},
 };
 
+std::map<string,CompiledGame::ObjectDeltaType, ci_less> CompiledGame::to_object_delta_type={
+    {"None", ObjectDeltaType::None},
+	{"Appear", ObjectDeltaType::Appear},
+	{"Disappear", ObjectDeltaType::Disappear},
+	{"Up", ObjectDeltaType::Up},
+	{"Down", ObjectDeltaType::Down},
+	{"Left", ObjectDeltaType::Left},
+    {"Right", ObjectDeltaType::Right},
+    {"^", ObjectDeltaType::RelativeUp},
+	{"v", ObjectDeltaType::RelativeDown},
+	{"<", ObjectDeltaType::RelativeLeft},
+    {">", ObjectDeltaType::RelativeRight},
+    {"Stationary", ObjectDeltaType::Stationary},
+    {"Action", ObjectDeltaType::Action},
+};
+
 void CompiledGame::PrimaryObject::GetAllPrimaryObjects(vector<weak_ptr<PrimaryObject>>& p_objects, bool only_get_unique_objects /* = true*/) {
     if(only_get_unique_objects)
     {
@@ -215,18 +231,24 @@ string CompiledGame::Rule::to_string() const
     {
         result += enum_to_str(command,to_command_type).value_or("Error") + " ";
     }
+    result += "\n";
+
+    for(const auto& delta : deltas)
+    {
+        result += "\t"+std::to_string(delta.delta_match_index) + "," + std::to_string(delta.delta_application_index)+" : " +delta.object->identifier+" "+enum_to_str( delta.delta_type,to_object_delta_type).value_or("Error")+"\n";
+    }
 
     return result;
 }
 
 void CompiledGame::print()
 {
-    bool p_print_objects = true;
-    bool p_print_graphic_data = true;
-    bool p_print_collision_layers = true;
+    bool p_print_objects = false;
+    bool p_print_graphic_data = false;
+    bool p_print_collision_layers = false;
     bool p_print_rules = true;
-    bool p_print_win_conditions = true;
-    bool p_print_levels = true;
+    bool p_print_win_conditions = false;
+    bool p_print_levels = false;
 
     if(p_print_objects)
     {

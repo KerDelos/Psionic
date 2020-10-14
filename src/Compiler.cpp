@@ -1,5 +1,6 @@
 #include <vector>
 #include <algorithm>
+#include <assert.h>
 
 #include "Compiler.hpp"
 
@@ -34,7 +35,8 @@ std::optional<CompiledGame> Compiler::compile_game(const ParsedGame& p_parsed_ga
 
     reference_collision_layers_in_objects();
 
-    verify_rules();
+    verify_rules_and_compute_deltas(m_compiled_game.rules);
+    verify_rules_and_compute_deltas(m_compiled_game.late_rules);
 
     m_logger->log(PSLogger::LogType::Log, m_compiler_log_cat, "Finished compiling");
 
@@ -677,8 +679,8 @@ void Compiler::compile_rules(const vector<Token<ParsedGame::RulesTokenType>>& p_
         current_rule = CompiledGame::Rule();
         current_rule.match_patterns.push_back(CompiledGame::Pattern());
         current_rule.result_patterns.push_back(CompiledGame::Pattern());
-        current_rule.match_patterns[0].cells.push_back(CompiledGame::RuleCell());
-        current_rule.result_patterns[0].cells.push_back(CompiledGame::RuleCell());
+        current_rule.match_patterns[0].cells.push_back(CompiledGame::CellRule());
+        current_rule.result_patterns[0].cells.push_back(CompiledGame::CellRule());
 
         cached_entity_info = CompiledGame::EntityRuleInfo::None;
     };
@@ -757,13 +759,15 @@ void Compiler::compile_rules(const vector<Token<ParsedGame::RulesTokenType>>& p_
             case RuleCompilingState::WaitingForLeftPatternObjectModifierOrIdentifierOrSyntax:
                 if(token.token_type == RulesToken::Dots)
                 {
-                    const CompiledGame::RuleCell& cur_cell = current_rule.match_patterns.back().cells.back();
+                    const CompiledGame::CellRule& cur_cell = current_rule.match_patterns.back().cells.back();
                     if(cur_cell.is_wildcard_cell)
                     {
                         detect_error(token, "cannot have mutliple \"...\" in the same cell.");
                     }
                     else if(cur_cell.content.size() != 0)
                     {
+                        //todo allow it ?
+                        //todo no error is detected if an object is added after the ...
                         detect_error(token, "cannot have objects in a \"...\" cell.");
                     }
                     else
@@ -773,7 +777,7 @@ void Compiler::compile_rules(const vector<Token<ParsedGame::RulesTokenType>>& p_
                 }
                 else if(token.token_type == RulesToken::Bar)
                 {
-                    current_rule.match_patterns.back().cells.push_back(CompiledGame::RuleCell());
+                    current_rule.match_patterns.back().cells.push_back(CompiledGame::CellRule());
                 }
                 else if(token.token_type == RulesToken::RightBracket)
                 {
@@ -791,7 +795,7 @@ void Compiler::compile_rules(const vector<Token<ParsedGame::RulesTokenType>>& p_
                     {
                         shared_ptr<CompiledGame::Object> obj_ptr = get_obj_by_id(token.str_value).lock();
 
-                        CompiledGame::RuleCell& cur_cel = current_rule.match_patterns.back().cells.back();
+                        CompiledGame::CellRule& cur_cel = current_rule.match_patterns.back().cells.back();
                         if( cur_cel.content.find(obj_ptr) != cur_cel.content.end())
                         {
                             detect_error(token, "cannot add twice the same object in a cell.");
@@ -822,7 +826,7 @@ void Compiler::compile_rules(const vector<Token<ParsedGame::RulesTokenType>>& p_
 
                         shared_ptr<CompiledGame::Object> obj_ptr = get_obj_by_id(token.str_value).lock();
 
-                        CompiledGame::RuleCell& cur_cel = current_rule.match_patterns.back().cells.back();
+                        CompiledGame::CellRule& cur_cel = current_rule.match_patterns.back().cells.back();
                         if( cur_cel.content.find(obj_ptr) != cur_cel.content.end())
                         {
                             detect_error(token, "cannot add twice the same object in a cell.");
@@ -853,7 +857,7 @@ void Compiler::compile_rules(const vector<Token<ParsedGame::RulesTokenType>>& p_
                 {
                     state = RuleCompilingState::WaitingForLeftPatternObjectModifierOrIdentifierOrSyntax;
                     current_rule.match_patterns.push_back(CompiledGame::Pattern());
-                    current_rule.match_patterns.back().cells.push_back(CompiledGame::RuleCell());
+                    current_rule.match_patterns.back().cells.push_back(CompiledGame::CellRule());
                 }
                 else
                 {
@@ -877,7 +881,7 @@ void Compiler::compile_rules(const vector<Token<ParsedGame::RulesTokenType>>& p_
             case RuleCompilingState::WaitingForRightPatternObjectModifierOrIdentifierOrSyntax:
                 if(token.token_type == RulesToken::Dots)
                 {
-                    const CompiledGame::RuleCell& cur_cell = current_rule.result_patterns.back().cells.back();
+                    const CompiledGame::CellRule& cur_cell = current_rule.result_patterns.back().cells.back();
                     if(cur_cell.is_wildcard_cell)
                     {
                         detect_error(token, "cannot have mutliple \"...\" in the same cell.");
@@ -893,7 +897,7 @@ void Compiler::compile_rules(const vector<Token<ParsedGame::RulesTokenType>>& p_
                 }
                 else if(token.token_type == RulesToken::Bar)
                 {
-                    current_rule.result_patterns.back().cells.push_back(CompiledGame::RuleCell());
+                    current_rule.result_patterns.back().cells.push_back(CompiledGame::CellRule());
                 }
                 else if(token.token_type == RulesToken::RightBracket)
                 {
@@ -911,7 +915,7 @@ void Compiler::compile_rules(const vector<Token<ParsedGame::RulesTokenType>>& p_
                     {
                         shared_ptr<CompiledGame::Object> obj_ptr = get_obj_by_id(token.str_value).lock();
 
-                        CompiledGame::RuleCell& cur_cel = current_rule.result_patterns.back().cells.back();
+                        CompiledGame::CellRule& cur_cel = current_rule.result_patterns.back().cells.back();
                         if( cur_cel.content.find(obj_ptr) != cur_cel.content.end())
                         {
                             detect_error(token, "cannot add twice the same object in a cell.");
@@ -940,7 +944,7 @@ void Compiler::compile_rules(const vector<Token<ParsedGame::RulesTokenType>>& p_
                     {
                         shared_ptr<CompiledGame::Object> obj_ptr = get_obj_by_id(token.str_value).lock();
 
-                        CompiledGame::RuleCell& cur_cel = current_rule.result_patterns.back().cells.back();
+                        CompiledGame::CellRule& cur_cel = current_rule.result_patterns.back().cells.back();
                         if( cur_cel.content.find(obj_ptr) != cur_cel.content.end())
                         {
                             detect_error(token, "cannot add twice the same object in a cell.");
@@ -966,7 +970,7 @@ void Compiler::compile_rules(const vector<Token<ParsedGame::RulesTokenType>>& p_
                 if(token.token_type == RulesToken::LeftBracket)
                 {
                     current_rule.result_patterns.push_back(CompiledGame::Pattern());
-                    current_rule.result_patterns.back().cells.push_back(CompiledGame::RuleCell());
+                    current_rule.result_patterns.back().cells.push_back(CompiledGame::CellRule());
                     state = RuleCompilingState::WaitingForRightPatternObjectModifierOrIdentifierOrSyntax;
                     break;
                 }
@@ -1225,10 +1229,428 @@ void Compiler::reference_collision_layers_in_objects()
     }
 }
 
-void Compiler::verify_rules()
+void Compiler::verify_rules_and_compute_deltas(vector<CompiledGame::Rule>& p_rules)
 {
-    detect_error(0, "verify_rules function no yet implemented", true);
+    for(int r=0; r < p_rules.size(); ++r)
+    {
+        CompiledGame::Rule& rule = p_rules[r];
+
+        //verify there is the same number of patterns on both sides of the arrow
+        if(rule.match_patterns.size() != rule.result_patterns.size())
+        {
+            detect_error(rule.rule_line,"There is not the same number of patterns on both sides of the arrow.");
+            return;
+        }
+
+        //verify each pattern pair have the same number of cells
+        for(int p = 0; p < rule.match_patterns.size(); ++p)
+        {
+            CompiledGame::Pattern match_pattern = rule.match_patterns[p];
+            CompiledGame::Pattern result_pattern = rule.result_patterns[p];
+            if(match_pattern.cells.size() != result_pattern.cells.size())
+            {
+                detect_error(rule.rule_line,"There is not the same number of cells in pattern n°"+to_string(p+1)+".");
+                return;
+            }
+
+            for(int c = 0; c < match_pattern.cells.size(); ++c)
+            {
+                CompiledGame::CellRule match_cell_rule = match_pattern.cells[c];
+                CompiledGame::CellRule result_cell_rule = result_pattern.cells[c];
+
+                //verify validity of ... symbols
+                if(match_cell_rule.is_wildcard_cell || result_cell_rule.is_wildcard_cell)
+                {
+                    if(!match_cell_rule.is_wildcard_cell || !result_cell_rule.is_wildcard_cell)
+                    {
+                        detect_error(rule.rule_line, "... must be at the same positions on both side of the arrow.");
+                        return;
+                    }
+
+                    if(match_cell_rule.content.size() > 0  || result_cell_rule.content.size() > 0)
+                    {
+                        detect_error(rule.rule_line, "When there is ... in a cell there cannot be anything else with it.");
+                        return;
+                    }
+                }
+
+                //todo should we disallow Aggregates objects ?
+            }
+        }
+
+        //todo maybe flag ambiguous object to try to solve them later ? or do that first ?
+
+        //compute deltas
+        for(int p = 0; p < rule.match_patterns.size(); ++p)
+        {
+            CompiledGame::Pattern match_pattern = rule.match_patterns[p];
+            CompiledGame::Pattern result_pattern = rule.result_patterns[p];
+
+            for(int c = 0; c < match_pattern.cells.size(); ++c)
+            {
+                CompiledGame::CellRule match_cell_rule = match_pattern.cells[c];
+                CompiledGame::CellRule result_cell_rule = result_pattern.cells[c];
+
+                for(auto match_pair : match_cell_rule.content)
+                {
+                    const pair<const shared_ptr<CompiledGame::Object>, CompiledGame::EntityRuleInfo>* equivalent_result_pair = nullptr;
+                    for(const auto& result_pair : result_cell_rule.content)
+                    {
+                        if(result_pair.first == match_pair.first)
+                        {
+                            equivalent_result_pair = &result_pair;
+                            break;
+                        }
+                    }
+
+                    if(equivalent_result_pair == nullptr)
+                    {
+                        if(match_pair.second != CompiledGame::EntityRuleInfo::No)
+                        {
+                            rule.deltas.push_back(CompiledGame::Delta(c,c,match_pair.first,CompiledGame::ObjectDeltaType::Disappear));
+                        }
+                    }
+                    else if(equivalent_result_pair->second != match_pair.second)
+                    {
+                        if(equivalent_result_pair->second == CompiledGame::EntityRuleInfo::No)
+                        {
+                            rule.deltas.push_back(CompiledGame::Delta(c,c,match_pair.first,CompiledGame::ObjectDeltaType::Disappear));
+                        }
+                        else
+                        {
+                            if(match_pair.second == CompiledGame::EntityRuleInfo::No)
+                            {
+                                rule.deltas.push_back(CompiledGame::Delta(c,c,match_pair.first,CompiledGame::ObjectDeltaType::Appear));
+                            }
+
+                            if(equivalent_result_pair->second == CompiledGame::EntityRuleInfo::Moving
+                            || equivalent_result_pair->second == CompiledGame::EntityRuleInfo::Parallel
+                            || equivalent_result_pair->second == CompiledGame::EntityRuleInfo::Perpendicular
+                            || equivalent_result_pair->second == CompiledGame::EntityRuleInfo::Vertical
+                            || equivalent_result_pair->second == CompiledGame::EntityRuleInfo::Horizontal
+                            || equivalent_result_pair->second == CompiledGame::EntityRuleInfo::Orthogonal)
+                            {
+                                //this would be an error since its ambiguous,
+                                detect_error(rule.rule_line, "ambiguous delta");//todo add more information
+                            }
+                            else if(equivalent_result_pair->second == CompiledGame::EntityRuleInfo::None
+                            || equivalent_result_pair->second == CompiledGame::EntityRuleInfo::Stationary  )
+                            {
+                                rule.deltas.push_back(CompiledGame::Delta(c,c,match_pair.first,CompiledGame::ObjectDeltaType::Stationary));
+                            }
+                            else
+                            {
+                                optional<CompiledGame::ObjectDeltaType> delta_type = str_to_enum(enum_to_str(equivalent_result_pair->second,CompiledGame::to_entity_rule_info).value_or("ERROR"), CompiledGame::to_object_delta_type);
+                                assert(delta_type.has_value());
+                                rule.deltas.push_back(CompiledGame::Delta(c,c,match_pair.first,delta_type.value()));
+                            }
+                        }
+                    }
+                }
+
+
+                for(auto result_pair : result_cell_rule.content)
+                {
+                    const pair<const shared_ptr<CompiledGame::Object>, CompiledGame::EntityRuleInfo>* equivalent_match_pair = nullptr;
+                    for(const auto& match_pair : match_cell_rule.content)
+                    {
+                        if(result_pair.first == match_pair.first)
+                        {
+                            equivalent_match_pair = &result_pair;
+                            break;
+                        }
+                    }
+
+                    if(equivalent_match_pair != nullptr)
+                    {
+                        //was already handled in the for loop around match_cell_rule_content
+                        continue;
+                    }
+                    else
+                    {
+                        //todo if it's not a primary object it's ambiguous, some ambiguity can be solved but not all of them
+
+                        if(result_pair.second == CompiledGame::EntityRuleInfo::No)
+                        {
+                            CompiledGame::Delta delta(c,c,result_pair.first,CompiledGame::ObjectDeltaType::Disappear);
+                            delta.is_optional = true;
+                            rule.deltas.push_back(delta);
+                        }
+                        else
+                        {
+                            rule.deltas.push_back(CompiledGame::Delta(c,c,result_pair.first,CompiledGame::ObjectDeltaType::Appear));
+
+                            if(result_pair.second == CompiledGame::EntityRuleInfo::None
+                            || result_pair.second == CompiledGame::EntityRuleInfo::Stationary )
+                            {
+                                //we  consider None and Stationary to be handled by the appear delta
+                            }
+                            else if(result_pair.second == CompiledGame::EntityRuleInfo::Moving
+                            || result_pair.second == CompiledGame::EntityRuleInfo::Parallel
+                            || result_pair.second == CompiledGame::EntityRuleInfo::Perpendicular
+                            || result_pair.second == CompiledGame::EntityRuleInfo::Vertical
+                            || result_pair.second == CompiledGame::EntityRuleInfo::Horizontal
+                            || result_pair.second == CompiledGame::EntityRuleInfo::Orthogonal)
+                            {
+                                //this would be an error since its ambiguous, a pass in the rule compilation should have detected that
+                                detect_error(rule.rule_line,"ambiguous delta"); //todo add more information
+                            }
+                            else
+                            {
+                                optional<CompiledGame::ObjectDeltaType> delta_type = str_to_enum(enum_to_str(result_pair.second,CompiledGame::to_entity_rule_info).value_or("ERROR"), CompiledGame::to_object_delta_type);
+                                assert(delta_type.has_value());
+                                rule.deltas.push_back(CompiledGame::Delta(c,c,result_pair.first,delta_type.value()));
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
+
+// PSEngine::RuleApplicationDelta PSEngine::compute_rule_delta(const CompiledGame::Rule& p_rule, AbsoluteDirection p_rule_app_dir,const vector<PatternMatchInformation>& p_pattern_match_infos)
+// {
+//     RuleApplicationDelta delta;
+
+//     delta.match_infos = p_pattern_match_infos;
+//     delta.rule_direction = p_rule_app_dir;
+
+//     for(int p = 0; p < p_rule.match_patterns.size(); ++p)
+//     {
+//         PatternMatchInformation current_pattern_match_infos = p_pattern_match_infos[p];
+//         auto wildcard_match_distances_iterator = current_pattern_match_infos.wildcard_match_distances.begin();
+
+//         int board_distance = -1;
+//         for(int i = 0; i < p_rule.match_patterns[p].cells.size(); ++i)
+//         {
+//             ++board_distance; //incrementing it here to prevent it from being incorrect (would happen if a continue statement was added somewhere without incrementing the value)
+
+//             CellDelta cell_delta;
+
+//             const auto& match_cell = p_rule.match_patterns[p].cells[i];
+//             const auto& result_cell = p_rule.result_patterns[p].cells[i];
+
+//             if(match_cell.is_wildcard_cell)
+//             {
+//                 //the -1 is to compensate the increment at the top of the loop.
+//                 //Because we moved one cell further in the rule but not necessarily one cell on the board since "..." could correspond to 0 cell
+//                 board_distance += *wildcard_match_distances_iterator -1;
+//                 ++wildcard_match_distances_iterator;
+//                 continue;
+//             }
+
+//             const Cell* level_cell = get_cell_from(current_pattern_match_infos.x, current_pattern_match_infos.y, board_distance, p_rule_app_dir);
+
+//             cell_delta.x = level_cell->x;
+//             cell_delta.y = level_cell->y;
+
+//             for(const auto& match_content_pair : match_cell.content)
+//             {
+//                 shared_ptr<CompiledGame::PrimaryObject> matched_primary_obj;
+//                 for(const auto& level_cell_pair : level_cell->objects)
+//                 {
+//                     if(match_content_pair.first->defines( level_cell_pair.first))
+//                     {
+//                         matched_primary_obj = level_cell_pair.first;
+//                     }
+//                 }
+
+
+//                 const auto& result_equivalent_pair = result_cell.content.find(match_content_pair.first);
+
+//                 if(result_equivalent_pair == result_cell.content.end())
+//                 {
+//                     if(match_content_pair.second != CompiledGame::EntityRuleInfo::No)
+//                     {
+//                         cell_delta.deltas.push_back(ObjectDelta(matched_primary_obj,ObjectDeltaType::Disappear));
+//                     }
+//                 }
+//                 else if(match_content_pair.second != result_equivalent_pair->second)
+//                 {
+//                     shared_ptr<CompiledGame::PrimaryObject> appearing_obj = nullptr;
+
+//                     if(match_content_pair.second == CompiledGame::EntityRuleInfo::No)
+//                     {
+//                         appearing_obj = match_content_pair.first->as_primary_object();
+//                         if(appearing_obj)
+//                         {
+//                             cell_delta.deltas.push_back(ObjectDelta(appearing_obj,ObjectDeltaType::Appear));
+//                         }
+//                         else
+//                         {
+//                             //todo support aggregate objects ?
+//                             detect_error("Trying to make a non primary object appear. This is ambiguous.");
+//                             continue;
+//                         }
+//                     }
+//                     else if(result_equivalent_pair->second == CompiledGame::EntityRuleInfo::No)
+//                     {
+//                         cell_delta.deltas.push_back(ObjectDelta(matched_primary_obj,ObjectDeltaType::Disappear));
+//                         continue;
+//                     }
+
+//                     shared_ptr<CompiledGame::PrimaryObject> object_to_use_in_delta = matched_primary_obj;
+//                     if(!object_to_use_in_delta)
+//                     {
+//                         object_to_use_in_delta = appearing_obj;
+//                         if(!object_to_use_in_delta)
+//                         {
+//                             detect_error("should never happen, wasn't able to find the object for the delta");
+//                         }
+//                     }
+
+
+//                     if(result_equivalent_pair->second == CompiledGame::EntityRuleInfo::Moving
+//                     || result_equivalent_pair->second == CompiledGame::EntityRuleInfo::Parallel
+//                     || result_equivalent_pair->second == CompiledGame::EntityRuleInfo::Perpendicular
+//                     || result_equivalent_pair->second == CompiledGame::EntityRuleInfo::Vertical
+//                     || result_equivalent_pair->second == CompiledGame::EntityRuleInfo::Horizontal
+//                     || result_equivalent_pair->second == CompiledGame::EntityRuleInfo::Orthogonal)
+//                     {
+//                         //this would be an error since its ambiguous, a pass in the rule compilation should have detected that
+//                         detect_error("ambiguous delta");
+//                     }
+//                     else if(result_equivalent_pair->second == CompiledGame::EntityRuleInfo::None
+//                     || result_equivalent_pair->second == CompiledGame::EntityRuleInfo::Stationary  )
+//                     {
+//                         cell_delta.deltas.push_back(ObjectDelta(object_to_use_in_delta,ObjectDeltaType::Stationary));
+//                     }
+//                     else
+//                     {
+//                         //convert the relative movement to an absolute one if needed
+//                         set<ObjectMoveType> move_types = convert_entity_rule_info_to_allowed_move_types(result_equivalent_pair->second,p_rule_app_dir).value();
+//                         if(move_types.size() != 1)
+//                         {
+//                             detect_error("should not happen");
+//                         }
+
+//                         ObjectDeltaType delta_type = ObjectDeltaType::None;
+
+//                         switch (*move_types.begin())
+//                         {
+//                         case ObjectMoveType::Up:
+//                             delta_type = ObjectDeltaType::Up;
+//                             break;
+//                         case ObjectMoveType::Down:
+//                             delta_type = ObjectDeltaType::Down;
+//                             break;
+//                         case ObjectMoveType::Left:
+//                             delta_type = ObjectDeltaType::Left;
+//                             break;
+//                         case ObjectMoveType::Right:
+//                             delta_type = ObjectDeltaType::Right;
+//                             break;
+//                         case ObjectMoveType::Action:
+//                             delta_type = ObjectDeltaType::Action;
+//                             break;
+//                         default:
+//                             detect_error("should not happen");
+//                             break;
+//                         }
+
+//                         cell_delta.deltas.push_back(ObjectDelta(object_to_use_in_delta,delta_type));
+//                     }
+
+//                 }
+//                 else
+//                 {
+//                     //no delta to add since it's all similar
+//                 }
+//             }
+
+//             for(const auto& result_content_pair : result_cell.content)
+//             {
+//                 const auto& match_equivalent_pair = match_cell.content.find(result_content_pair.first);
+//                 if(match_equivalent_pair != match_cell.content.end())
+//                 {
+//                     //if we found the object in the match pattern then the deltas where already handled in the for loop above
+//                 }
+//                 else
+//                 {
+//                     shared_ptr<CompiledGame::PrimaryObject> prim_obj = result_content_pair.first->as_primary_object();
+
+//                     if(!prim_obj)//the object here must be a primary object, if not, it's ambiguous
+//                     {
+//                         detect_error("ambiguous object detected, please specify a primary object"); //this should be detected in the rule compilations
+//                         continue;
+//                     }
+
+//                     if(result_content_pair.second == CompiledGame::EntityRuleInfo::No)
+//                     {
+//                         //todo maybe we should consider this as an optional disappear
+
+
+//                         cell_delta.deltas.push_back(ObjectDelta(prim_obj,ObjectDeltaType::Disappear));
+//                     }
+//                     else
+//                     {
+//                         cell_delta.deltas.push_back(ObjectDelta(prim_obj,ObjectDeltaType::Appear));
+
+//                         if(result_content_pair.second == CompiledGame::EntityRuleInfo::None
+//                         || result_content_pair.second == CompiledGame::EntityRuleInfo::Stationary )
+//                         {
+//                             //we  consider None and Stationary to be handled by the appear delta
+//                         }
+//                         else if(result_content_pair.second == CompiledGame::EntityRuleInfo::Moving
+//                         || result_content_pair.second == CompiledGame::EntityRuleInfo::Parallel
+//                         || result_content_pair.second == CompiledGame::EntityRuleInfo::Perpendicular
+//                         || result_content_pair.second == CompiledGame::EntityRuleInfo::Vertical
+//                         || result_content_pair.second == CompiledGame::EntityRuleInfo::Horizontal
+//                         || result_content_pair.second == CompiledGame::EntityRuleInfo::Orthogonal)
+//                         {
+//                             //this would be an error since its ambiguous, a pass in the rule compilation should have detected that
+//                             detect_error("ambiguous delta");
+//                         }
+//                         else
+//                         {
+//                             //convert the relative movement to an absolute one if needed
+//                             set<ObjectMoveType> move_types = convert_entity_rule_info_to_allowed_move_types(result_content_pair.second,p_rule_app_dir).value();
+//                             if(move_types.size() != 1)
+//                             {
+//                                 detect_error("should not happen");
+//                             }
+
+//                             ObjectDeltaType delta_type = ObjectDeltaType::None;
+
+//                             switch (*move_types.begin())
+//                             {
+//                             case ObjectMoveType::Up:
+//                                 delta_type = ObjectDeltaType::Up;
+//                                 break;
+//                             case ObjectMoveType::Down:
+//                                 delta_type = ObjectDeltaType::Down;
+//                                 break;
+//                             case ObjectMoveType::Left:
+//                                 delta_type = ObjectDeltaType::Left;
+//                                 break;
+//                             case ObjectMoveType::Right:
+//                                 delta_type = ObjectDeltaType::Right;
+//                                 break;
+//                             case ObjectMoveType::Action:
+//                                 delta_type = ObjectDeltaType::Action;
+//                                 break;
+//                             default:
+//                                 detect_error("should not happen");
+//                                 break;
+//                             }
+
+//                             cell_delta.deltas.push_back(ObjectDelta(prim_obj,delta_type));
+//                         }
+
+//                     }
+//                 }
+
+//             }
+
+//             if(cell_delta.deltas.size() > 0)
+//             {
+//                 delta.cell_deltas.push_back(cell_delta);
+//             }
+//         }
+//     }
+//     return delta;
+// }
 
 weak_ptr<CompiledGame::Object> Compiler::get_obj_by_id(const string& p_id)
 {

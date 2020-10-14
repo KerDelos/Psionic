@@ -2,6 +2,7 @@
 #include <iostream>
 #include <string>
 #include <filesystem>
+#include <optional>
 
 #include "Parser.hpp"
 #include "Compiler.hpp"
@@ -91,6 +92,8 @@ void load_and_run_game(string file_path)
     }
     CompiledGame compiled_game = compiled_game_opt.value();
     compiled_game.print();
+
+    return;
 
     PSEngine engine;
     engine.load_game(compiled_game);

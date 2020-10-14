@@ -38,7 +38,7 @@ protected:
 
     void reference_collision_layers_in_objects();
 
-    void verify_rules();
+    void verify_rules_and_compute_deltas(vector<CompiledGame::Rule>& p_rules);
 
     bool check_identifier_validity(const string& p_id, int p_identifier_line_numbler, bool p_should_already_exist);
     weak_ptr<CompiledGame::Object> get_obj_by_id(const string& p_id);
@@ -53,5 +53,5 @@ protected:
     void detect_error(Token<T> p_token, string p_error_msg, bool p_is_warning = false);
     void detect_error(int p_line_number, string p_error_msg, bool p_is_warning = false);
 
-    
+
 };

@@ -14,6 +14,7 @@ public:
     {
         bool verbose_logging = true;
         bool log_operation_history_after_error = true;
+        bool add_ticks_to_operation_history = false;
     };
 
     enum ObjectMoveType
@@ -44,19 +45,6 @@ public:
         vector<Cell> cells;
     };
 
-    enum class ObjectDeltaType
-    {
-        None,
-        Appear,
-        Disappear,
-        Up,
-        Down,
-        Left,
-        Right,
-        Stationary,
-        Action,
-    };
-
     enum class AbsoluteDirection{
         None,
         Up,
@@ -75,9 +63,9 @@ public:
     struct ObjectDelta
     {
         shared_ptr<CompiledGame::PrimaryObject> object;
-        ObjectDeltaType type;
+        CompiledGame::ObjectDeltaType type;
 
-        ObjectDelta(shared_ptr<CompiledGame::PrimaryObject> p_object, ObjectDeltaType p_type) : object(p_object), type(p_type){};
+        ObjectDelta(shared_ptr<CompiledGame::PrimaryObject> p_object, CompiledGame::ObjectDeltaType p_type) : object(p_object), type(p_type){};
 
         friend bool operator==(const ObjectDelta& lhs, const ObjectDelta& rhs){
             bool result = lhs.object == rhs.object;
@@ -150,6 +138,7 @@ public:
         None,
         Input,
         LoadLevel,
+        Tick,
         Undo,
         Restart,
         LoadGame,
@@ -167,6 +156,7 @@ public:
 
         InputType input_type = InputType::None;
         int loaded_level = -1;
+        float delta_time = -1;
         string loaded_game_title = ""; //leave empty if not specified in the metedata ?
 
         Operation(OperationType p_op_type = OperationType::None, InputType p_input_type = InputType::None, int p_loaded_level = -1, string p_loaded_game_title = "")
@@ -174,7 +164,6 @@ public:
         {};
     };
 
-    static std::map<string,ObjectDeltaType, ci_less> to_object_delta_type;
     static std::map<string,OperationType, ci_less> to_operation_type;
     static std::map<string,AbsoluteDirection, ci_less> to_absolute_direction;
     static std::map<string,InputType, ci_less> to_input_type;
@@ -240,7 +229,7 @@ protected:
 
     vector<PatternMatchInformation> match_pattern(const CompiledGame::Pattern& p_pattern, AbsoluteDirection p_rule_application_direction);
 
-    bool does_rule_cell_matches_cell(const CompiledGame::RuleCell& p_rule_cell, const Cell* p_cell, AbsoluteDirection p_rule_application_direction);
+    bool does_rule_cell_matches_cell(const CompiledGame::CellRule& p_rule_cell, const Cell* p_cell, AbsoluteDirection p_rule_application_direction);
 
     set<AbsoluteDirection> get_absolute_directions_from_rule_direction(CompiledGame::RuleDirection p_rule_direction);
 
