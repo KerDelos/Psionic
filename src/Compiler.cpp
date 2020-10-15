@@ -1278,7 +1278,7 @@ void Compiler::verify_rules_and_compute_deltas(vector<CompiledGame::Rule>& p_rul
             }
         }
 
-        //todo maybe flag ambiguous object to try to solve them later ? or do that first ?
+        multimap<shared_ptr<CompiledGame::Object>,std::tuple<int,int>> orphan_ambiguous_objects_location; //first int the pattern index, second is the cell index
 
         //compute deltas
         for(int p = 0; p < rule.match_patterns.size(); ++p)
@@ -1309,6 +1309,8 @@ void Compiler::verify_rules_and_compute_deltas(vector<CompiledGame::Rule>& p_rul
                         {
                             rule.deltas.push_back(CompiledGame::Delta(p,c,c,match_pair.first,CompiledGame::ObjectDeltaType::Disappear));
                         }
+
+                        orphan_ambiguous_objects_location.insert(std::make_pair(match_pair.first,std::make_tuple(p,c)));
                     }
                     else if(equivalent_result_pair->second != match_pair.second)
                     {
@@ -1368,17 +1370,30 @@ void Compiler::verify_rules_and_compute_deltas(vector<CompiledGame::Rule>& p_rul
                     }
                     else
                     {
-                        //todo if it's not a primary object it's ambiguous, some ambiguity can be solved but not all of them
+                        int match_pattern_location = p;
+                        int match_cell_location = c;
+                        if(result_pair.first->is_properties())
+                        {
+                            //try to find if there is an unmatched object in another cell in the match patterns
+                            if(orphan_ambiguous_objects_location.count(result_pair.first) != 1)
+                            {
+                                detect_error(rule.rule_line,"could not resolve ambiguity with "+result_pair.first->identifier+"."); //todo add more precise informations
+                            }
+                            else
+                            {
+                                std::tie(match_pattern_location,match_cell_location) = orphan_ambiguous_objects_location.find(result_pair.first)->second;
+                            }
+                        }
 
                         if(result_pair.second == CompiledGame::EntityRuleInfo::No)
                         {
-                            CompiledGame::Delta delta(p,c,c,result_pair.first,CompiledGame::ObjectDeltaType::Disappear);
+                            CompiledGame::Delta delta(match_pattern_location,match_cell_location,c,result_pair.first,CompiledGame::ObjectDeltaType::Disappear);
                             delta.is_optional = true;
                             rule.deltas.push_back(delta);
                         }
                         else
                         {
-                            rule.deltas.push_back(CompiledGame::Delta(p,c,c,result_pair.first,CompiledGame::ObjectDeltaType::Appear));
+                            rule.deltas.push_back(CompiledGame::Delta(match_pattern_location,match_cell_location,c,result_pair.first,CompiledGame::ObjectDeltaType::Appear));
 
                             if(result_pair.second == CompiledGame::EntityRuleInfo::None
                             || result_pair.second == CompiledGame::EntityRuleInfo::Stationary )
@@ -1399,7 +1414,7 @@ void Compiler::verify_rules_and_compute_deltas(vector<CompiledGame::Rule>& p_rul
                             {
                                 optional<CompiledGame::ObjectDeltaType> delta_type = str_to_enum(enum_to_str(result_pair.second,CompiledGame::to_entity_rule_info).value_or("ERROR"), CompiledGame::to_object_delta_type);
                                 assert(delta_type.has_value());
-                                rule.deltas.push_back(CompiledGame::Delta(p,c,c,result_pair.first,delta_type.value()));
+                                rule.deltas.push_back(CompiledGame::Delta(match_pattern_location,match_cell_location,c,result_pair.first,delta_type.value()));
                             }
                         }
                     }
