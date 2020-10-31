@@ -141,7 +141,15 @@ void Parser::parse_prelude()
 
 	while(m_text_provider->is_valid() && m_current_file_section == FileSection::Prelude)
 	{
-			switch(m_text_provider->advance())
+		m_text_provider->advance();
+		if(try_parse_return())
+		{
+			m_line_counter ++;
+			line_beggining = true;
+		}
+		else
+		{
+			switch(m_text_provider->get_current_char())
 			{
 				case '=':
 				//ignore '=' character
@@ -150,11 +158,6 @@ void Parser::parse_prelude()
 				case '(':
 					parse_comment();
 					line_beggining = false;
-					break;
-				case '\n':
-					//cout << "--\n";
-					m_line_counter ++;
-					line_beggining = true;
 					break;
 				default:
 					if(line_beggining)
@@ -169,6 +172,7 @@ void Parser::parse_prelude()
 					line_beggining = false;
 				break;
 			}
+		}
 
 	}
 
@@ -178,8 +182,6 @@ void Parser::parse_prelude()
 void Parser::parse_prelude_identifier()
 {
 	string identifier_string = parse_word();
-
-	//cout << "identifier :" << identifier_string << "\n";
 
 	if(str_to_enum(identifier_string, to_file_section).value_or(FileSection::None) != FileSection::None)
 	{
@@ -207,23 +209,25 @@ void Parser::parse_prelude_literal()
 	bool detected_literal_end = false;
 	while(m_text_provider->is_valid() && !detected_literal_end)
 	{
-		switch(m_text_provider->advance())
+		m_text_provider->advance();
+		if(try_parse_return(false))
 		{
-			case '(':
-				parse_comment();
+			detected_literal_end = true;
+			m_text_provider->reverse();
+		}
+		else
+		{
+			switch(m_text_provider->get_current_char())
+			{
+				case '(':
+					parse_comment();
+					break;
+				default:
+					current_literal_string.push_back(m_text_provider->get_current_char());
 				break;
-			case '\n':
-				detected_literal_end = true;
-				m_text_provider->reverse();
-			break;
-
-			default:
-				current_literal_string.push_back(m_text_provider->get_current_char());
-			break;
+			}
 		}
 	}
-
-	//cout << "literal :" << current_literal_string << "\n";
 
 	m_parsed_game.prelude_tokens.push_back(Token<ParsedGame::PreludeTokenType>(ParsedGame::PreludeTokenType::Literal,current_literal_string, m_line_counter));
 }
@@ -234,7 +238,14 @@ void Parser::parse_objects()
 
 	while(m_text_provider->is_valid() && m_current_file_section == FileSection::Objects)
 	{
-			switch(m_text_provider->advance())
+		m_text_provider->advance();
+		if(try_parse_return())
+		{
+			m_line_counter ++;
+		}
+		else
+		{
+			switch(m_text_provider->get_current_char())
 			{
 				case ' ':
 				case '=':
@@ -242,10 +253,6 @@ void Parser::parse_objects()
 					break;
 				case '(':
 					parse_comment();
-					break;
-				case '\n':
-					//cout << "--\n";
-					m_line_counter ++;
 					break;
 				case '#':
 					parse_objects_color_hex_code();
@@ -278,6 +285,7 @@ void Parser::parse_objects()
 					}
 				break;
 			}
+		}
 
 	}
 
@@ -303,16 +311,20 @@ void Parser::parse_legend()
 
 	while(m_text_provider->is_valid() && m_current_file_section == FileSection::Legend)
 	{
-			switch(m_text_provider->advance())
+		m_text_provider->advance();
+		if(try_parse_return())
+		{
+			m_parsed_game.legend_tokens.push_back(Token<ParsedGame::LegendTokenType>(ParsedGame::LegendTokenType::Return,"",m_line_counter));
+			m_line_counter ++;
+		}
+		else
+		{
+			switch(m_text_provider->get_current_char())
 			{
 				case ' ':
 					break;
 				case '(':
 					parse_comment();
-					break;
-				case '\n':
-					m_parsed_game.legend_tokens.push_back(Token<ParsedGame::LegendTokenType>(ParsedGame::LegendTokenType::Return,"",m_line_counter));
-					m_line_counter ++;
 					break;
 				case '=':
 					if(m_text_provider->peek() == '=')
@@ -344,6 +356,7 @@ void Parser::parse_legend()
 					}
 				break;
 			}
+		}
 
 	}
 
@@ -357,15 +370,19 @@ void Parser::parse_sounds()
 
 	while(m_text_provider->is_valid() && m_current_file_section == FileSection::Sounds)
 	{
-			switch(m_text_provider->advance())
+		m_text_provider->advance();
+		if(try_parse_return())
+		{
+			m_line_counter ++;
+		}
+		else
+		{
+			switch(m_text_provider->get_current_char())
 			{
 				case ' ':
 					break;
 				case '(':
 					parse_comment();
-					break;
-				case '\n':
-					m_line_counter ++;
 					break;
 				default:
 					string parsed_word = parse_word();
@@ -378,7 +395,7 @@ void Parser::parse_sounds()
 					}
 				break;
 			}
-
+		}
 	}
 
 	m_logger->log(PSLogger::LogType::Log, m_parser_log_cat, "Finished sounds parsing");
@@ -390,7 +407,15 @@ void Parser::parse_collision_layers()
 
 	while(m_text_provider->is_valid() && m_current_file_section == FileSection::CollisionLayers)
 	{
-			switch(m_text_provider->advance())
+		m_text_provider->advance();
+		if(try_parse_return())
+		{
+			m_parsed_game.collision_layers_tokens.push_back(Token<ParsedGame::CollisionLayersTokenType>(ParsedGame::CollisionLayersTokenType::Return,"",m_line_counter));
+			m_line_counter ++;
+		}
+		else
+		{
+			switch(m_text_provider->get_current_char())
 			{
 				case '=':
 					parse_equals_row();
@@ -402,10 +427,6 @@ void Parser::parse_collision_layers()
 					break;
 				case ',':
 					m_parsed_game.collision_layers_tokens.push_back(Token<ParsedGame::CollisionLayersTokenType>(ParsedGame::CollisionLayersTokenType::Comma,"",m_line_counter));
-					break;
-				case '\n':
-					m_parsed_game.collision_layers_tokens.push_back(Token<ParsedGame::CollisionLayersTokenType>(ParsedGame::CollisionLayersTokenType::Return,"",m_line_counter));
-					m_line_counter ++;
 					break;
 				default:
 					string parsed_word = parse_word();
@@ -423,6 +444,7 @@ void Parser::parse_collision_layers()
 
 				break;
 			}
+		}
 
 	}
 
@@ -435,7 +457,15 @@ void Parser::parse_rules()
 
 	while(m_text_provider->is_valid() && m_current_file_section == FileSection::Rules)
 	{
-			switch(m_text_provider->advance())
+		m_text_provider->advance();
+		if(try_parse_return())
+		{
+			m_parsed_game.rules_tokens.push_back(Token<ParsedGame::RulesTokenType>(ParsedGame::RulesTokenType::Return,"",m_line_counter));
+			m_line_counter ++;
+		}
+		else
+		{
+			switch(m_text_provider->get_current_char())
 			{
 				case '=':
 					parse_equals_row();
@@ -447,10 +477,6 @@ void Parser::parse_rules()
 					break;
 				case ',':
 					detect_error("Unexpected comma.");
-					break;
-				case '\n':
-					m_parsed_game.rules_tokens.push_back(Token<ParsedGame::RulesTokenType>(ParsedGame::RulesTokenType::Return,"",m_line_counter));
-					m_line_counter ++;
 					break;
 				case '[':
 					m_parsed_game.rules_tokens.push_back(Token<ParsedGame::RulesTokenType>(ParsedGame::RulesTokenType::LeftBracket,"",m_line_counter));
@@ -514,7 +540,7 @@ void Parser::parse_rules()
 					parse_rules_word();
 				break;
 			}
-
+		}
 	}
 
 	m_logger->log(PSLogger::LogType::Log, m_parser_log_cat, "Finished rules parsing");
@@ -584,7 +610,15 @@ void Parser::parse_win_conditions()
 
 	while(m_text_provider->is_valid() && m_current_file_section == FileSection::WinConditions)
 	{
-			switch(m_text_provider->advance())
+		m_text_provider->advance();
+		if(try_parse_return())
+		{
+			m_parsed_game.win_conditions_tokens.push_back(Token<ParsedGame::WinConditionsTokenType>(ParsedGame::WinConditionsTokenType::Return,"",m_line_counter));
+			m_line_counter ++;
+		}
+		else
+		{
+			switch(m_text_provider->get_current_char())
 			{
 				case '=':
 					parse_equals_row();
@@ -599,10 +633,6 @@ void Parser::parse_win_conditions()
 				case '|':
 				case ',':
 					detect_error("Unexpected symbol.");
-					break;
-				case '\n':
-					m_parsed_game.win_conditions_tokens.push_back(Token<ParsedGame::WinConditionsTokenType>(ParsedGame::WinConditionsTokenType::Return,"",m_line_counter));
-					m_line_counter ++;
 					break;
 				default:
 					string parsed_word = parse_word();
@@ -641,7 +671,7 @@ void Parser::parse_win_conditions()
 					}
 				break;
 			}
-
+		}
 	}
 
 	m_logger->log(PSLogger::LogType::Log, m_parser_log_cat, "Finished win conditions parsing");
@@ -653,8 +683,16 @@ void Parser::parse_levels()
 	bool is_line_beggining = false;
 	while(m_text_provider->is_valid() && m_current_file_section == FileSection::Levels)
 	{
-			//cout << m_current_char << " ";
-			switch(m_text_provider->advance())
+		m_text_provider->advance();
+		if(try_parse_return())
+		{
+			is_line_beggining = true;
+			m_parsed_game.levels_tokens.push_back(Token<ParsedGame::LevelsTokenType>(ParsedGame::LevelsTokenType::Return,"",m_line_counter));
+			m_line_counter ++;
+		}
+		else
+		{
+			switch(m_text_provider->get_current_char())
 			{
 				case '=':
 					parse_equals_row();
@@ -665,11 +703,6 @@ void Parser::parse_levels()
 					break;
 				case '(':
 					parse_comment();
-					break;
-				case '\n':
-					is_line_beggining = true;
-					m_parsed_game.levels_tokens.push_back(Token<ParsedGame::LevelsTokenType>(ParsedGame::LevelsTokenType::Return,"",m_line_counter));
-					m_line_counter ++;
 					break;
 				default:
 					if((m_text_provider->get_current_char() != 'm' && m_text_provider->get_current_char() != 'M')
@@ -682,7 +715,7 @@ void Parser::parse_levels()
 					is_line_beggining = false;
 				break;
 			}
-
+		}
 	}
 
 	m_logger->log(PSLogger::LogType::Log, m_parser_log_cat, "Finished levels parsing");
@@ -696,18 +729,23 @@ bool Parser::try_parse_levels_message()
 	bool detected_word_end = false;
 	while(m_text_provider->is_valid() && !detected_word_end)
 	{
-		switch(m_text_provider->advance())
+		m_text_provider->advance();
+		if(try_parse_return(false))
 		{
-			case '\n':
-				detected_word_end = true;
-				m_text_provider->reverse();
-			break;
+			detected_word_end = true;
+			m_text_provider->reverse();
+		}
+		else
+		{
+			switch(m_text_provider->get_current_char())
+			{
 				case ' ':
-				detected_word_end = true;
-			break;
-			default:
-				temp_buffer.push_back(m_text_provider->get_current_char());
-			break;
+					detected_word_end = true;
+				break;
+				default:
+					temp_buffer.push_back(m_text_provider->get_current_char());
+				break;
+			}
 		}
 	}
 
@@ -722,15 +760,15 @@ bool Parser::try_parse_levels_message()
 		detected_word_end = false;
 		while(m_text_provider->is_valid() && !detected_word_end)
 		{
-			switch(m_text_provider->advance())
+			m_text_provider->advance();
+			if(try_parse_return(false))
 			{
-				case '\n':
-					detected_word_end = true;
-					m_text_provider->reverse();
-				break;
-				default:
-					temp_buffer.push_back(m_text_provider->get_current_char());
-				break;
+				detected_word_end = true;
+				m_text_provider->reverse();
+			}
+			else
+			{
+				temp_buffer.push_back(m_text_provider->get_current_char());
 			}
 		}
 		m_parsed_game.levels_tokens.push_back(Token<ParsedGame::LevelsTokenType>(ParsedGame::LevelsTokenType::MessageContent,temp_buffer,m_line_counter));
@@ -766,23 +804,31 @@ string Parser::parse_word()
 	bool detected_word_end = false;
 	while(m_text_provider->is_valid() && !detected_word_end)
 	{
-		switch(m_text_provider->advance())
+		m_text_provider->advance();
+		if(try_parse_return(false))
 		{
-			case '=':
-			case ',':
-			case '(':
-			case '[':
-			case ']':
-			case '|':
-			case '\n':
-			case ' ':
-				detected_word_end = true;
-				m_text_provider->reverse();
-			break;
+			detected_word_end = true;
+			m_text_provider->reverse();
+		}
+		else
+		{
+			switch(m_text_provider->get_current_char())
+			{
+				case '=':
+				case ',':
+				case '(':
+				case '[':
+				case ']':
+				case '|':
+				case ' ':
+					detected_word_end = true;
+					m_text_provider->reverse();
+				break;
 
-			default:
-				current_string.push_back(m_text_provider->get_current_char());
-			break;
+				default:
+					current_string.push_back(m_text_provider->get_current_char());
+				break;
+			}
 		}
 	}
 
@@ -797,20 +843,25 @@ void Parser::parse_comment(int p_comment_level /*= 0*/)
 
 	while(m_text_provider->is_valid() && continue_parsing)
 	{
-		switch (m_text_provider->advance())
+		m_text_provider->advance();
+		if(try_parse_return())
 		{
-		case '\n':
-			++m_line_counter;
-			break;
-		case '(':
-			parse_comment(p_comment_level + 1);
-			break;
-		case ')':
-			continue_parsing = false;
-			break;
+			++ m_line_counter;
+		}
+		else
+		{
+			switch (m_text_provider->get_current_char())
+			{
+			case '(':
+				parse_comment(p_comment_level + 1);
+				break;
+			case ')':
+				continue_parsing = false;
+				break;
 
-		default:
-			break;
+			default:
+				break;
+			}
 		}
 	}
 
@@ -820,6 +871,31 @@ void Parser::parse_comment(int p_comment_level /*= 0*/)
 	}
 
 	//cout << "Finishing comment parsing level : " << p_comment_level << "\n";
+}
+
+bool Parser::try_parse_return(bool consume /* = true*/)
+{
+	if(m_text_provider->get_current_char() == '\n')
+	{
+		return true;
+	}
+	else if(m_text_provider->get_current_char() == '\r')
+	{
+		if(m_text_provider->advance() == '\n')
+		{
+			if(consume == false)
+			{
+				m_text_provider->reverse();
+			}
+			return true;
+		}
+		else
+		{
+			detect_error("Detected and invalid line ending sequence.");
+		}
+	}
+
+	return false;
 }
 
 void Parser::detect_error(string p_error_msg)

@@ -62,13 +62,6 @@ char TextProviderString::advance()
 			//todo add a line counter in this class to make these function return the correct line
 			m_has_error = true;
 		}
-
-		if(m_current_char == '\r')
-		{
-			m_logger->log(PSLogger::LogType::Error, m_parser_text_provider_log_cat,
-			"detected character \\r. Sorry but for now psionic can only handle files with LF (\\n) line endings.");
-			m_has_error = true;
-		}
 	}
 	else
 	{
@@ -172,13 +165,6 @@ char TextProviderFile::advance()
 			m_logger->log(PSLogger::LogType::Error, m_parser_text_provider_log_cat,
 			"detected non ascii character. this interpreter does not yet support unicode files, sorry :/");
 			//todo add a line counter in this class to make these function return the correct line
-			m_has_error = true;
-		}
-
-		if(m_current_char == '\r')
-		{
-			m_logger->log(PSLogger::LogType::Error, m_parser_text_provider_log_cat,
-			"detected character \\r. Sorry but for now psionic can only handle files with LF (\\n) line endings.");
 			m_has_error = true;
 		}
 	}

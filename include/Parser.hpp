@@ -44,11 +44,12 @@ protected:
 	void try_change_file_section(FileSection p_new_file_section);
 
 	//GENERAL PARSING FUNCTIONS
-	
+
 
 	void parse_comment(int p_comment_level = 0);
 	string parse_word();
 	void parse_equals_row();
+	bool try_parse_return(bool consume = true);
 
 	void detect_error(string p_error_msg);
 
@@ -89,7 +90,7 @@ protected:
 	shared_ptr<PSLogger> m_logger;
 
 	static const string m_parser_log_cat;
-	
+
 	FileSection m_current_file_section = FileSection::None;
 
 	ParsedGame m_parsed_game;
