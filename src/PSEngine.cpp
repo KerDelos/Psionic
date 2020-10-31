@@ -1395,7 +1395,7 @@ string PSEngine::get_single_char_obj_alias(const string& p_obj_id)
 
         if(alias_obj->identifier.size() > 1)
         {
-            detect_error("Found an alias but string is more than one character (\""+alias_obj->identifier+"\"), please consider adding a one char alias for \"" + p_obj_id + "\" for the level print to work.");
+            log_warning("Found an alias but string is more than one character (\""+alias_obj->identifier+"\"), please consider adding a one char alias for \"" + p_obj_id + "\" for the level print to work.");
             return "~";
         }
 
@@ -1403,7 +1403,7 @@ string PSEngine::get_single_char_obj_alias(const string& p_obj_id)
         return alias_obj->identifier;
     }
 
-    detect_error("Didn't find an alias, please consider adding a one char alias for \"" + p_obj_id + "\" for the level print to work.");
+    log_warning("Didn't find an alias, please consider adding a one char alias for \"" + p_obj_id + "\" for the level print to work.");
     return "?";
 }
 
@@ -1415,6 +1415,16 @@ void PSEngine::log(string p_log_msg, bool p_is_verbose /*= true*/)
     }
 
     m_logger->log(p_is_verbose ? PSLogger::LogType::VerboseLog : PSLogger::LogType::Log, m_engine_log_cat, p_log_msg);
+}
+
+void PSEngine::log_warning(string p_warning_msg)
+{
+    m_logger->log(PSLogger::LogType::Warning, m_engine_log_cat, p_warning_msg);
+
+    if(m_config.log_operation_history_after_error)
+    {
+        print_operation_history();
+    }
 }
 
 void PSEngine::detect_error(string p_error_msg)

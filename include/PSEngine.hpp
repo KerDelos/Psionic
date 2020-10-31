@@ -239,6 +239,7 @@ protected:
     string get_single_char_obj_alias(const string& p_obj_id);
 
     void log(string p_log_msg, bool p_is_verbose = true);
+    void log_warning(string p_warning_msg);
     void detect_error(string p_error_msg);
 
     CompiledGame m_compiled_game;
