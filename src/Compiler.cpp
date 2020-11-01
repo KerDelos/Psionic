@@ -1272,6 +1272,18 @@ void Compiler::verify_rules_and_compute_deltas(vector<CompiledGame::Rule>& p_rul
                         detect_error(rule.rule_line, "When there is ... in a cell there cannot be anything else with it.");
                         return;
                     }
+
+                    if(c == 0 || c == match_pattern.cells.size() - 1)
+                    {
+                        detect_error(rule.rule_line, "... cannot be in the first or last cell.");
+                        return;
+                    }
+
+                    if(match_pattern.cells[c+1].is_wildcard_cell)
+                    {
+                        detect_error(rule.rule_line, "... cannot be followed by another ...");
+                        return;
+                    }
                 }
 
                 //todo should we disallow Aggregates objects ?

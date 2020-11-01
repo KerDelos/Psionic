@@ -577,23 +577,6 @@ vector<PSEngine::PatternMatchInformation> PSEngine::match_pattern(const Compiled
 
             if(match_cell.is_wildcard_cell)
             {
-                /*if(!p_rule.result_pattern.front().cells[i].is_wildcard_cell)
-                {
-                    PS_LOG_ERROR("... is not properly placed in the second part of the rule");//todo this kind of checks should be moved in the compiler
-                    return;
-                }
-                else*/
-                if(p_pattern.cells.size() <= i + 1)
-                {
-                    PS_LOG_ERROR("... can not be the last element in a rule");//todo this kind of checks should be moved in the compiler
-                    return vector<PatternMatchInformation>();
-                }
-                else if(p_pattern.cells[i+1].is_wildcard_cell)
-                {
-                    PS_LOG_ERROR("... can not be followed by another ...");//todo this kind of checks should be moved in the compiler
-                    return vector<PatternMatchInformation>();
-                }
-
                 const CompiledGame::CellRule& next_match_cell = p_pattern.cells[i+1];
 
                 int wildcard_match_distance = 0;
