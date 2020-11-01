@@ -199,6 +199,7 @@ public:
     static std::map<string,ObjectMoveType, ci_less> to_object_move_type;
 
     PSEngine(shared_ptr<PSLogger> p_logger = nullptr);
+    PSEngine(Config p_config, shared_ptr<PSLogger> p_logger = nullptr);
 
     void load_game(const CompiledGame& p_game_to_load);
 
@@ -231,6 +232,8 @@ public:
     void print_subturns_history() const;
 
 protected:
+
+    Config m_config;
 
     shared_ptr<PSLogger> m_logger;
     static const string m_engine_log_cat;
@@ -293,6 +296,4 @@ protected:
     bool m_is_level_won = false;
 
     float m_current_tick_time_elapsed = 0;
-
-    Config m_config;
 };

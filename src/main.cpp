@@ -286,7 +286,9 @@ bool run_tests(string directory_path, std::chrono::microseconds* duration)
             }
             CompiledGame compiled_game = compiled_game_opt.value();
 
-            PSEngine engine(logger);
+            PSEngine::Config engine_config;
+            engine_config.log_verbosity = PSLogger::LogType::Error;
+            PSEngine engine(engine_config, logger);
             engine.load_game(compiled_game);
 
             bool need_level_idx = true;
@@ -450,8 +452,9 @@ int main(int argc, char *argv[])
             run_tests(resources_folder_path, &timers.back());
         }
 
-        auto mean = std::accumulate(timers.begin(),timers.end(),0, [](auto sum, auto current){return sum + current.count();}) / run_number;
-        cout << "ran the tests " << to_string(run_number) << " times and mean execution time is "<< to_string(mean) <<" microseconds\n.";
+        auto total = std::accumulate(timers.begin(),timers.end(),0, [](auto sum, auto current){return sum + current.count();});
+        auto mean =  total / run_number;
+        cout << "ran the tests " << to_string(run_number) << " times. total execution time : "<< to_string(total) <<" microseconds. mean execution time : "<< to_string(mean) <<" microseconds\n.";
     }
     else
     {

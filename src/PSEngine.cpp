@@ -77,7 +77,9 @@ optional<shared_ptr<CompiledGame::PrimaryObject>> PSEngine::Cell::find_colliding
 
 const string PSEngine::m_engine_log_cat = "engine";
 
-PSEngine::PSEngine(shared_ptr<PSLogger> p_logger /*=nullptr*/) : m_logger(p_logger)
+PSEngine::PSEngine(shared_ptr<PSLogger> p_logger /*= nullptr*/) : PSEngine(Config(),p_logger){}
+
+PSEngine::PSEngine(Config p_config, shared_ptr<PSLogger> p_logger /*=nullptr*/) : m_config(p_config), m_logger(p_logger)
 {
     if(m_logger == nullptr)
 	{
