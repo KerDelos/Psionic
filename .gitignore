@@ -3,6 +3,7 @@
 .sconsign.dblite
 
 build/
+perfs/
 
 # Prerequisites
 *.d

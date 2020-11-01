@@ -5,7 +5,7 @@
 
 void PSLogger::log(LogType p_type, std::string p_category, std::string p_msg)
 {
-    if(only_log_errors && p_type!= LogType::Error && p_type != LogType::Critical )
+    if(p_type < log_verbosity )
     {
         return;
     }

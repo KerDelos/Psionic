@@ -7,12 +7,49 @@
 #include "CompiledGame.hpp"
 #include "PSLogger.hpp"
 
+
+#define PS_LOG(p_log_msg){\
+    if(m_config.log_verbosity <= PSLogger::LogType::Log)\
+    {\
+        m_logger->log(PSLogger::LogType::Log, m_engine_log_cat, p_log_msg);\
+    }\
+}
+
+#define PS_LOG_VERBOSE(p_log_msg){\
+    if(m_config.log_verbosity <= PSLogger::LogType::VerboseLog)\
+    {\
+        m_logger->log(PSLogger::LogType::VerboseLog, m_engine_log_cat, p_log_msg);\
+    }\
+}
+
+#define PS_LOG_WARNING(p_log_msg){\
+    if(m_config.log_verbosity <= PSLogger::LogType::Warning)\
+    {\
+        m_logger->log(PSLogger::LogType::Warning, m_engine_log_cat, p_log_msg);\
+        if(m_config.log_operation_history_after_error)\
+        {\
+            print_operation_history();\
+        }\
+    }\
+}
+
+#define PS_LOG_ERROR(p_log_msg){\
+    if(m_config.log_verbosity <= PSLogger::LogType::Error)\
+    {\
+        m_logger->log(PSLogger::LogType::Error, m_engine_log_cat, p_log_msg);\
+        if(m_config.log_operation_history_after_error)\
+        {\
+            print_operation_history();\
+        }\
+    }\
+}
+
 class PSEngine
 {
 public:
     struct Config
     {
-        bool verbose_logging = true;
+        PSLogger::LogType log_verbosity = PSLogger::LogType::Warning;
         bool log_operation_history_after_error = true;
         bool add_ticks_to_operation_history = false;
     };
@@ -237,10 +274,6 @@ protected:
 
 
     string get_single_char_obj_alias(const string& p_obj_id);
-
-    void log(string p_log_msg, bool p_is_verbose = true);
-    void log_warning(string p_warning_msg);
-    void detect_error(string p_error_msg);
 
     CompiledGame m_compiled_game;
 

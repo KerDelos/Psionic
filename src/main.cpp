@@ -14,7 +14,7 @@ const int TEST_RECORD_VERSION = 1;
 optional<CompiledGame> compile_game(string file_path)
 {
     shared_ptr<PSLogger> logger = make_shared<PSLogger>(PSLogger());
-    logger->only_log_errors = true;
+    logger->log_verbosity = PSLogger::LogType::Warning;
 
     std::ifstream ifs(file_path);
     std::string content( (std::istreambuf_iterator<char>(ifs) ),
@@ -238,7 +238,7 @@ void run_game_and_record_test_file(string resources_folder_path, string file_nam
 bool run_tests(string directory_path)
 {
     shared_ptr<PSLogger> logger = make_shared<PSLogger>(PSLogger());
-    logger->only_log_errors = true;
+    logger->log_verbosity = PSLogger::LogType::Warning;
 
     ci_equal equal_op;
 

@@ -108,7 +108,7 @@ optional<vector<PSEngine::SubturnHistory>> PSEngine::receive_input(InputType p_i
 {
     m_operation_history.push_back(Operation(OperationType::Input,p_input));
 
-    m_logger->log(PSLogger::LogType::Log, m_engine_log_cat, "Received input : " + enum_to_str(p_input,to_input_type).value_or("ERROR"));
+    PS_LOG("Received input : " + enum_to_str(p_input,to_input_type).value_or("ERROR"));
 
     m_last_input = p_input;
 
@@ -131,7 +131,7 @@ optional<vector<PSEngine::SubturnHistory>> PSEngine::receive_input(InputType p_i
         move_type = ObjectMoveType::Action;
         break;
     default:
-        detect_error("invalid input type.");
+        PS_LOG_ERROR("invalid input type.");
         return nullopt;
     }
 
@@ -154,7 +154,7 @@ optional<vector<PSEngine::SubturnHistory>> PSEngine::tick(float p_delta_time)
 {
     if(!m_compiled_game.prelude_info.realtime_interval.has_value())
     {
-        detect_error("Trying to tick the engine but the loaded puzzlescript doesn't have realtime setup.");
+        PS_LOG_ERROR("Trying to tick the engine but the loaded puzzlescript doesn't have realtime setup.");
         return nullopt;
     }
 
@@ -264,31 +264,31 @@ optional<vector<PSEngine::SubturnHistory>> PSEngine::next_turn()
 
 bool PSEngine::next_subturn()
 {
-    log("--- Subturn start ---");
+    PS_LOG("--- Subturn start ---");
     Level last_subturn_save = m_current_level;
 
     m_turn_history.push_back(SubturnHistory());
 
     for(const auto& rule : m_compiled_game.rules)
     {
-        log("Processing rule : " + rule.to_string());
+        PS_LOG("Processing rule : " + rule.to_string());
         apply_rule(rule);
     }
 
     if( !resolve_movements() )
     {
-        log("could not resolve movement, cancelling the turn.");
+        PS_LOG("could not resolve movement, cancelling the turn.");
         m_current_level = last_subturn_save;
         m_turn_history.pop_back();
         return false;
     }
     else
     {
-        log("movement resolved");
+        PS_LOG("movement resolved");
 
         for(const auto& rule : m_compiled_game.late_rules)
         {
-            log("Processing late rule : " + rule.to_string());
+            PS_LOG("Processing late rule : " + rule.to_string());
             apply_rule(rule);
         }
 
@@ -406,7 +406,7 @@ bool PSEngine::does_move_info_matches_rule(ObjectMoveType p_move_type, CompiledG
     }
     else if( p_rule_info == CompiledGame::EntityRuleInfo::No)
     {
-        detect_error("should not happen");
+        PS_LOG_ERROR("should not happen");
         return false;
     }
     else
@@ -428,7 +428,7 @@ bool PSEngine::does_move_info_matches_rule(ObjectMoveType p_move_type, CompiledG
         }
         else
         {
-            detect_error("should not happen");
+            PS_LOG_ERROR("should not happen");
             return false;
         }
     }
@@ -459,7 +459,7 @@ bool PSEngine::does_rule_cell_matches_cell(const CompiledGame::CellRule& p_rule_
                 else
                 {
                     //todo in some cases, such as when no delta apply to ambiguous object, it should not be an error
-                    detect_error("detected multiple object that match the definition. this is ambiguous");
+                    PS_LOG_ERROR("detected multiple object that match the definition. this is ambiguous");
                     return false;
                 }
             }
@@ -554,7 +554,7 @@ PSEngine::RuleApplicationDelta PSEngine::translate_rule_delta(const CompiledGame
         }
         else if( !rule_delta.is_optional)
         {
-            detect_error("was not able to find a match");//todo add more information
+            PS_LOG_ERROR("was not able to find a match");//todo add more information
         }
     }
 
@@ -577,18 +577,18 @@ vector<PSEngine::PatternMatchInformation> PSEngine::match_pattern(const Compiled
             {
                 /*if(!p_rule.result_pattern.front().cells[i].is_wildcard_cell)
                 {
-                    detect_error("... is not properly placed in the second part of the rule");//todo this kind of checks should be moved in the compiler
+                    PS_LOG_ERROR("... is not properly placed in the second part of the rule");//todo this kind of checks should be moved in the compiler
                     return;
                 }
                 else*/
                 if(p_pattern.cells.size() <= i + 1)
                 {
-                    detect_error("... can not be the last element in a rule");//todo this kind of checks should be moved in the compiler
+                    PS_LOG_ERROR("... can not be the last element in a rule");//todo this kind of checks should be moved in the compiler
                     return vector<PatternMatchInformation>();
                 }
                 else if(p_pattern.cells[i+1].is_wildcard_cell)
                 {
-                    detect_error("... can not be followed by another ...");//todo this kind of checks should be moved in the compiler
+                    PS_LOG_ERROR("... can not be followed by another ...");//todo this kind of checks should be moved in the compiler
                     return vector<PatternMatchInformation>();
                 }
 
@@ -694,12 +694,12 @@ void PSEngine::apply_rule(const CompiledGame::Rule& p_rule)
 
                 if(add_delta)
                 {
-                    log("Matched the rule at "+new_rule_match_str);
+                    PS_LOG("Matched the rule at "+new_rule_match_str);
                     rule_delta.rule_application_deltas.push_back(application_delta);
                 }
                 else
                 {
-                    log("Skipping match at "+new_rule_match_str+" since it equals match at "+matched_delta_app_str);
+                    PS_LOG("Skipping match at "+new_rule_match_str+" since it equals match at "+matched_delta_app_str);
 
                 }
             }
@@ -764,7 +764,7 @@ void PSEngine::apply_delta(const RuleApplicationDelta& p_delta)
             else
             {
                 string cell_coord_str = to_string(cell->x)+","+to_string(cell->y);
-                detect_error("cannot add object " +obj_delta.object->identifier+ " since there's already one in the cell ("+cell_coord_str+")");
+                PS_LOG_ERROR("cannot add object " +obj_delta.object->identifier+ " since there's already one in the cell ("+cell_coord_str+")");
             }
             //todo check for collisions
         }
@@ -778,7 +778,7 @@ void PSEngine::apply_delta(const RuleApplicationDelta& p_delta)
             else
             {
                 string cell_coord_str = to_string(cell->x)+","+to_string(cell->y);
-                detect_error("cannot delete object " +obj_delta.object->identifier+ " since it wasn't on the cell ("+cell_coord_str+")");
+                PS_LOG_ERROR("cannot delete object " +obj_delta.object->identifier+ " since it wasn't on the cell ("+cell_coord_str+")");
             }
         }
         else
@@ -905,7 +905,7 @@ bool PSEngine::try_to_move_object(Cell& p_containing_cell, shared_ptr<CompiledGa
         }
     }
 
-    detect_error("try to move and object but the object was not found in the cell");
+    PS_LOG_ERROR("try to move and object but the object was not found in the cell");
     return false;
 }
 
@@ -975,7 +975,7 @@ bool PSEngine::basic_movement_resolution()
             {
                 if(pair.second == ObjectMoveType::None)
                 {
-                    detect_error("an objec move type is set to none, this should never happen");
+                    PS_LOG_ERROR("an objec move type is set to none, this should never happen");
                     continue;
                 }
                 ObjectMoveInfo move_info;
@@ -1008,14 +1008,14 @@ bool PSEngine::basic_movement_resolution()
 
         if(dest_cell == nullptr)
         {
-            detect_error("should not happen!");
+            PS_LOG_ERROR("should not happen!");
             return false;
         }
 
         if(dest_cell->objects.find(move_info.obj) != dest_cell->objects.end())
         {
             //moving objects were temporarily removed from the level so only static ones should be detected here
-            detect_error("this object already exist in the destination cell, basic movement resolution cannot proceed.");
+            PS_LOG_ERROR("this object already exist in the destination cell, basic movement resolution cannot proceed.");
             return false;
         }
 
@@ -1098,7 +1098,7 @@ bool PSEngine::check_win_condition(const CompiledGame::WinCondition& p_win_condi
             }
             break;
         default:
-            detect_error("should not happen");
+            PS_LOG_ERROR("should not happen");
             break;
         }
     }
@@ -1159,14 +1159,14 @@ bool PSEngine::get_move_destination_coord(int p_origin_x, int p_origin_y, Object
             break;
 
         default:
-            detect_error("incorrect move type specified to PSEngine::get_move_destination_cell");
+            PS_LOG_ERROR("incorrect move type specified to PSEngine::get_move_destination_cell");
             return false;
     }
 
     //check for out of bounds
     if(p_origin_x >= m_current_level.width || p_origin_x < 0 || p_origin_y >= m_current_level.height || p_origin_y < 0)
     {
-        //detect_error("Cannot get move destination cell since the move would be out of bounds");
+        //PS_LOG_ERROR("Cannot get move destination cell since the move would be out of bounds");
         return false;
     }
 
@@ -1203,7 +1203,7 @@ PSEngine::Cell* PSEngine::get_cell_from(int p_origin_x, int p_origin_y, int p_di
         }
     }
 
-    detect_error("should not happen");
+    PS_LOG_ERROR("should not happen");
     return nullptr;
 }
 
@@ -1212,7 +1212,7 @@ PSEngine::Cell* PSEngine::get_cell_at(int p_x, int p_y)
     //check for out of bounds
     if(p_x >= m_current_level.width || p_x < 0 || p_y >= m_current_level.height || p_y < 0)
     {
-        //detect_error("Cannot get move destination cell since the move would be out of bounds");
+        //PS_LOG_ERROR("Cannot get move destination cell since the move would be out of bounds");
         return nullptr;
     }
 
@@ -1223,7 +1223,7 @@ void PSEngine::load_level_internal(int p_level_idx)
 {
     if(p_level_idx >= m_compiled_game.levels.size())
     {
-        detect_error("Cannot load level "+to_string(p_level_idx)+", there's only "+to_string(m_compiled_game.levels.size())+" levels.");
+        PS_LOG_ERROR("Cannot load level "+to_string(p_level_idx)+", there's only "+to_string(m_compiled_game.levels.size())+" levels.");
         return;
     }
     m_level_state_stack.clear();
@@ -1292,7 +1292,7 @@ void PSEngine::print_game_state()
 
     if(m_current_level.cells.size() != height*width)
     {
-        detect_error("Cannot print level, height and width do not match with the number of cells");
+        PS_LOG_ERROR("Cannot print level, height and width do not match with the number of cells");
     }
 
     auto reset_lines_to_draw = [&](){
@@ -1332,7 +1332,7 @@ void PSEngine::print_game_state()
 
             if(cell.objects.size() > draw_space)
             {
-                detect_error("Will not be able to draw correctly level. Too many objects in a cell and too little size to draw ("+to_string(cell.objects.size())+" vs "+to_string(draw_space)+")" );
+                PS_LOG_ERROR("Will not be able to draw correctly level. Too many objects in a cell and too little size to draw ("+to_string(cell.objects.size())+" vs "+to_string(draw_space)+")" );
                 return;
             }
 
@@ -1368,7 +1368,7 @@ void PSEngine::print_game_state()
         reset_lines_to_draw();
     }
 
-    m_logger->log(PSLogger::LogType::Log, m_engine_log_cat, print_result_str);
+    PS_LOG(print_result_str);
 }
 
 string PSEngine::get_single_char_obj_alias(const string& p_obj_id)
@@ -1395,7 +1395,7 @@ string PSEngine::get_single_char_obj_alias(const string& p_obj_id)
 
         if(alias_obj->identifier.size() > 1)
         {
-            log_warning("Found an alias but string is more than one character (\""+alias_obj->identifier+"\"), please consider adding a one char alias for \"" + p_obj_id + "\" for the level print to work.");
+            PS_LOG_WARNING("Found an alias but string is more than one character (\""+alias_obj->identifier+"\"), please consider adding a one char alias for \"" + p_obj_id + "\" for the level print to work.");
             return "~";
         }
 
@@ -1403,40 +1403,9 @@ string PSEngine::get_single_char_obj_alias(const string& p_obj_id)
         return alias_obj->identifier;
     }
 
-    log_warning("Didn't find an alias, please consider adding a one char alias for \"" + p_obj_id + "\" for the level print to work.");
+    PS_LOG_WARNING("Didn't find an alias, please consider adding a one char alias for \"" + p_obj_id + "\" for the level print to work.");
     return "?";
 }
-
-void PSEngine::log(string p_log_msg, bool p_is_verbose /*= true*/)
-{
-    if(p_is_verbose && !m_config.verbose_logging)
-    {
-        return;
-    }
-
-    m_logger->log(p_is_verbose ? PSLogger::LogType::VerboseLog : PSLogger::LogType::Log, m_engine_log_cat, p_log_msg);
-}
-
-void PSEngine::log_warning(string p_warning_msg)
-{
-    m_logger->log(PSLogger::LogType::Warning, m_engine_log_cat, p_warning_msg);
-
-    if(m_config.log_operation_history_after_error)
-    {
-        print_operation_history();
-    }
-}
-
-void PSEngine::detect_error(string p_error_msg)
-{
-    m_logger->log(PSLogger::LogType::Error, m_engine_log_cat, p_error_msg);
-
-    if(m_config.log_operation_history_after_error)
-    {
-        print_operation_history();
-    }
-}
-
 
 string PSEngine::operation_history_to_string() const
 {
@@ -1473,7 +1442,7 @@ string PSEngine::operation_history_to_string() const
 
 void PSEngine::print_operation_history() const
 {
-    m_logger->log(PSLogger::LogType::Log, m_engine_log_cat, operation_history_to_string());
+    PS_LOG(operation_history_to_string());
 }
 
 void PSEngine::print_subturns_history() const
@@ -1520,5 +1489,5 @@ void PSEngine::print_subturns_history() const
         }
     }
 
-    m_logger->log(PSLogger::LogType::Log, m_engine_log_cat, result);
+    PS_LOG(result);
 }

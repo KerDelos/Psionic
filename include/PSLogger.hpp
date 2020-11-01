@@ -2,7 +2,6 @@
 
 #include <string>
 
-
 class PSLogger
 {
 public:
@@ -19,7 +18,7 @@ public:
 
     virtual ~PSLogger(){};
 
-    bool only_log_errors = false;
+    LogType log_verbosity = LogType::Warning;
 
     virtual void log(LogType p_type, std::string p_category, std::string p_msg);
 };
