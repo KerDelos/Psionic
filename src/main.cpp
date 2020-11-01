@@ -3,6 +3,7 @@
 #include <string>
 #include <filesystem>
 #include <optional>
+#include <numeric>
 
 #include "Parser.hpp"
 #include "Compiler.hpp"
@@ -235,8 +236,10 @@ void run_game_and_record_test_file(string resources_folder_path, string file_nam
     record_file.close();
 }
 
-bool run_tests(string directory_path)
+bool run_tests(string directory_path, std::chrono::microseconds* duration)
 {
+    auto start_time = std::chrono::high_resolution_clock::now();
+
     shared_ptr<PSLogger> logger = make_shared<PSLogger>(PSLogger());
     logger->log_verbosity = PSLogger::LogType::Warning;
 
@@ -356,6 +359,14 @@ bool run_tests(string directory_path)
         }
     }
 
+    auto end_time = std::chrono::high_resolution_clock::now();
+    if(duration != nullptr)
+    {
+        *duration = std::chrono::duration_cast<std::chrono::microseconds>( end_time - start_time );
+
+        std::cout <<"test ran in "<< duration->count() << " microseconds.\n";
+    }
+
     return !has_error;
 }
 
@@ -368,6 +379,7 @@ int main(int argc, char *argv[])
 
     bool test_requested = false;
     bool record_requested = false;
+    bool perf_test_requested = false;
 
     ci_equal equal_op;
 
@@ -377,6 +389,10 @@ int main(int argc, char *argv[])
         {
             test_requested = true;
         }
+        else if(equal_op(argv[1],"perf_tests"))
+        {
+            perf_test_requested = true;
+        }
         else
         {
             file_name = argv[1];
@@ -385,7 +401,7 @@ int main(int argc, char *argv[])
 
     if(argc >= 3)
     {
-        if(test_requested)
+        if(test_requested || perf_test_requested)
         {
             cout << "error : no other argument can be passed if a test is requested\n";
             has_error = true;
@@ -415,7 +431,7 @@ int main(int argc, char *argv[])
 
     if(test_requested)
     {
-        if(run_tests(resources_folder_path))
+        if(run_tests(resources_folder_path, nullptr))
         {
             cout << "All tests completed with success !\n";
         }
@@ -423,7 +439,19 @@ int main(int argc, char *argv[])
         {
             cout << "Errors detected while testing, there may have been a regression with the engine\n";
         }
+    }
+    else if(perf_test_requested)
+    {
+        const int run_number = 10;
+        std::vector<std::chrono::microseconds> timers;
+        for(int i = 0; i < run_number; ++i)
+        {
+            timers.push_back(std::chrono::microseconds());
+            run_tests(resources_folder_path, &timers.back());
+        }
 
+        auto mean = std::accumulate(timers.begin(),timers.end(),0, [](auto sum, auto current){return sum + current.count();}) / run_number;
+        cout << "ran the tests " << to_string(run_number) << " times and mean execution time is "<< to_string(mean) <<" microseconds\n.";
     }
     else
     {
