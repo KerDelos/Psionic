@@ -180,6 +180,14 @@ public:
         vector<CompiledGame::CommandType> gather_all_subturn_commands() const;
     };
 
+    struct TurnHistory
+    {
+        vector<SubturnHistory> subturns;
+
+        bool was_turn_cancelled = false;
+    };
+
+
     struct Operation{
         OperationType operation_type = OperationType::None;
 
@@ -207,9 +215,9 @@ public:
 
     void load_level(int p_level_idx);
 
-    optional<vector<SubturnHistory>> receive_input(InputType p_input);
+    optional<TurnHistory> receive_input(InputType p_input);
 
-    optional<vector<SubturnHistory>> tick(float p_delta_time);
+    optional<TurnHistory> tick(float p_delta_time);
 
     void restart_level();
     bool undo();
@@ -224,7 +232,7 @@ public:
 
     Level get_level_state() const {return m_current_level;};
 
-    vector<SubturnHistory> get_turn_deltas() {return m_turn_history;}
+    TurnHistory get_turn_deltas() {return m_turn_history;}
 
     string operation_history_to_string() const;
     void print_operation_history() const;
@@ -240,7 +248,7 @@ protected:
 
     void load_level_internal(int p_level_idx);
 
-    optional<vector<PSEngine::SubturnHistory>> next_turn();
+    optional<TurnHistory> next_turn();
 
     bool next_subturn();
 
@@ -286,8 +294,7 @@ protected:
 
     vector<Operation> m_operation_history;
 
-    //todo subturnHistory does not contain information about mouvement that happened or failed during the subturn!!
-    vector<SubturnHistory> m_turn_history;
+    TurnHistory m_turn_history;
 
     InputType m_last_input = InputType::None;
 

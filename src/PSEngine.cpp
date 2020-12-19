@@ -106,7 +106,7 @@ void PSEngine::Load_first_level()
     load_level_internal(0);
 }
 
-optional<vector<PSEngine::SubturnHistory>> PSEngine::receive_input(InputType p_input)
+optional<PSEngine::TurnHistory> PSEngine::receive_input(InputType p_input)
 {
     m_operation_history.push_back(Operation(OperationType::Input,p_input));
 
@@ -152,7 +152,7 @@ optional<vector<PSEngine::SubturnHistory>> PSEngine::receive_input(InputType p_i
     return next_turn();
 }
 
-optional<vector<PSEngine::SubturnHistory>> PSEngine::tick(float p_delta_time)
+optional<PSEngine::TurnHistory> PSEngine::tick(float p_delta_time)
 {
     if(!m_compiled_game.prelude_info.realtime_interval.has_value())
     {
@@ -172,7 +172,7 @@ optional<vector<PSEngine::SubturnHistory>> PSEngine::tick(float p_delta_time)
 
     m_current_tick_time_elapsed += p_delta_time;
 
-    optional<vector<PSEngine::SubturnHistory>> result = nullopt;
+    optional<TurnHistory> result = nullopt;
 
     while(m_current_tick_time_elapsed >= realtime_interval)
     {
@@ -206,12 +206,12 @@ bool PSEngine::undo()
 }
 
 
-optional<vector<PSEngine::SubturnHistory>> PSEngine::next_turn()
+optional<PSEngine::TurnHistory> PSEngine::next_turn()
 {
     Level last_turn_save = m_current_level;
-    vector<SubturnHistory> last_turn_history_save = m_turn_history;
+    TurnHistory last_turn_history_save = m_turn_history;
 
-    m_turn_history.clear();
+    m_turn_history = TurnHistory();
 
     bool win_requested_by_command = false;
     bool keep_computing_subturn = false;
@@ -221,7 +221,7 @@ optional<vector<PSEngine::SubturnHistory>> PSEngine::next_turn()
 
         if(next_subturn())
         {
-            vector<CompiledGame::CommandType> subturn_commands = m_turn_history.back().gather_all_subturn_commands();
+            vector<CompiledGame::CommandType> subturn_commands = m_turn_history.subturns.back().gather_all_subturn_commands();
 
             for(const auto& command : subturn_commands)
             {
@@ -233,8 +233,10 @@ optional<vector<PSEngine::SubturnHistory>> PSEngine::next_turn()
                 else if (command == CompiledGame::CommandType::Cancel)
                 {
                     m_current_level = last_turn_save;
+                    TurnHistory cancelled_turn_history = m_turn_history;
+                    cancelled_turn_history.was_turn_cancelled = true;
                     m_turn_history = last_turn_history_save;
-                    return nullopt; //todo shouldn't we want to know what happened that lead to a cancel ?
+                    return optional<PSEngine::TurnHistory>(cancelled_turn_history);
                 }
                 else if (command == CompiledGame::CommandType::Again)
                 {
@@ -249,7 +251,7 @@ optional<vector<PSEngine::SubturnHistory>> PSEngine::next_turn()
 
     } while (keep_computing_subturn); //todo add an infinite loop safety
 
-    if( m_turn_history.size() > 0)
+    if( m_turn_history.subturns.size() > 0)
     {
         m_level_state_stack.push_back(last_turn_save);
         print_subturns_history();
@@ -261,7 +263,7 @@ optional<vector<PSEngine::SubturnHistory>> PSEngine::next_turn()
         m_is_level_won = true;
     }
 
-    return optional<vector<PSEngine::SubturnHistory>>(m_turn_history);
+    return optional<PSEngine::TurnHistory>(m_turn_history);
 }
 
 bool PSEngine::next_subturn()
@@ -269,7 +271,7 @@ bool PSEngine::next_subturn()
     PS_LOG("--- Subturn start ---");
     Level last_subturn_save = m_current_level;
 
-    m_turn_history.push_back(SubturnHistory());
+    m_turn_history.subturns.push_back(SubturnHistory());
 
     for(const auto& rule : m_compiled_game.rules)
     {
@@ -279,9 +281,13 @@ bool PSEngine::next_subturn()
 
     if( !resolve_movements() )
     {
-        PS_LOG("could not resolve movement, cancelling the turn.");
+        //todo : for now, movement should always successfully resolve
+        //need to decide what to do and add in the history if a movement phase can be considered as unresolved
+        //(ie: in puzzlescript there's an option to cancel the whole turn if the player cannot move for example)
+        assert(false);
+        /*PS_LOG("could not resolve movement, cancelling the turn.");
         m_current_level = last_subturn_save;
-        m_turn_history.pop_back();
+        m_turn_history.pop_back();*/
         return false;
     }
     else
@@ -713,7 +719,7 @@ void PSEngine::apply_rule(const CompiledGame::Rule& p_rule)
     if(rule_delta.rule_application_deltas.size() > 0)
     {
         rule_delta.rule_applied = p_rule;
-        m_turn_history.back().steps.push_back(rule_delta);
+        m_turn_history.subturns.back().steps.push_back(rule_delta);
     }
 
     for(const RuleApplicationDelta& delta : rule_delta.rule_application_deltas)
@@ -866,24 +872,21 @@ bool PSEngine::try_to_move_object(Cell& p_containing_cell, shared_ptr<CompiledGa
                 move_delta.destination_x = dest_cell->x;
                 move_delta.destination_y = dest_cell->y;
                 move_delta.move_direction = dir;
-
                 move_delta.object = found_object;
 
 
                 if(move_permitted)
                 {
                     move_delta.moved_successfully = true;
-
-                    p_movement_deltas.movement_deltas.push_back(move_delta);
-
                     dest_cell->objects.insert(make_pair(found_object, ObjectMoveType::Stationary));
-                    return true;
                 }
                 else
                 {
+                    move_delta.moved_successfully = false;
                     p_containing_cell.objects.insert(make_pair(found_object, ObjectMoveType::Stationary));
-                    return false;
                 }
+                p_movement_deltas.movement_deltas.push_back(move_delta);
+                return move_delta.moved_successfully;
 
             }
             else
@@ -931,7 +934,7 @@ bool PSEngine::advanced_movement_resolution()
         }
     }
 
-    m_turn_history.back().steps.push_back(movement_deltas);
+    m_turn_history.subturns.back().steps.push_back(movement_deltas);
 
     return true;
 }
@@ -1438,10 +1441,10 @@ void PSEngine::print_operation_history() const
 void PSEngine::print_subturns_history() const
 {
     string result = "";
-    for(int i = 0; i < m_turn_history.size(); ++i)
+    for(int i = 0; i < m_turn_history.subturns.size(); ++i)
     {
-        const auto& subturn = m_turn_history[i];
-        result += "--- Subturn " + to_string(i+1) + "/" + to_string(m_turn_history.size()) + "---\n";
+        const auto& subturn = m_turn_history.subturns[i];
+        result += "--- Subturn " + to_string(i+1) + "/" + to_string(m_turn_history.subturns.size()) + "---\n";
         for(const auto& rule_delta : subturn.steps)
         {
             if(rule_delta.is_movement_resolution)
