@@ -136,7 +136,7 @@ public:
         int destination_y = -1;
         AbsoluteDirection move_direction;
         shared_ptr<CompiledGame::PrimaryObject> object;
-        //bool moved_successfully = false; //todo also register failed movements
+        bool moved_successfully = false;
     };
 
     struct RuleDelta //todo this class should probably be renamed since it can now hold movement deltas

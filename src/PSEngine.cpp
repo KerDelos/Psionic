@@ -408,6 +408,7 @@ bool PSEngine::does_move_info_matches_rule(ObjectMoveType p_move_type, CompiledG
     }
     else if( p_rule_info == CompiledGame::EntityRuleInfo::No)
     {
+        assert(false);
         PS_LOG_ERROR("should not happen");
         return false;
     }
@@ -430,6 +431,7 @@ bool PSEngine::does_move_info_matches_rule(ObjectMoveType p_move_type, CompiledG
         }
         else
         {
+            assert(false);
             PS_LOG_ERROR("should not happen");
             return false;
         }
@@ -858,16 +860,19 @@ bool PSEngine::try_to_move_object(Cell& p_containing_cell, shared_ptr<CompiledGa
                     }
                 }
 
+                MovementDelta move_delta;
+                move_delta.origin_x = p_containing_cell.x;
+                move_delta.origin_y = p_containing_cell.y;
+                move_delta.destination_x = dest_cell->x;
+                move_delta.destination_y = dest_cell->y;
+                move_delta.move_direction = dir;
+
+                move_delta.object = found_object;
+
+
                 if(move_permitted)
                 {
-                    MovementDelta move_delta;
-                    move_delta.origin_x = p_containing_cell.x;
-                    move_delta.origin_y = p_containing_cell.y;
-                    move_delta.destination_x = dest_cell->x;
-                    move_delta.destination_y = dest_cell->y;
-                    move_delta.move_direction = dir;
-                    //move_delta.moved_successfully = true;
-                    move_delta.object = found_object;
+                    move_delta.moved_successfully = true;
 
                     p_movement_deltas.movement_deltas.push_back(move_delta);
 
