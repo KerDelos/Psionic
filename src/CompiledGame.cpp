@@ -4,6 +4,8 @@
 #include <iostream>
 #include <memory>
 
+#include <assert.h>
+
 #include "EnumHelpers.hpp"
 
 using namespace std;
@@ -14,6 +16,7 @@ map<string,CompiledGame::CommandType, ci_less> CompiledGame::to_command_type ={
 	{"Win", CommandType::Win},
 	{"Cancel", CommandType::Cancel},
 	{"Again", CommandType::Again},
+    {"Message", CommandType::Message},
 };
 
 map<string,CompiledGame::RuleDirection, ci_less> CompiledGame::to_rule_direction = {
@@ -229,7 +232,7 @@ string CompiledGame::Rule::to_string(bool with_deltas /*=false*/) const
 
     for(const auto& command : commands)
     {
-        result += enum_to_str(command,to_command_type).value_or("Error") + " ";
+        result += enum_to_str(command.type,to_command_type).value_or("Error") + " " + (command.type == CommandType::Message ? command.message : "");
     }
 
     if(with_deltas)
@@ -253,7 +256,7 @@ void CompiledGame::print()
     bool p_print_collision_layers = false;
     bool p_print_rules = true;
     bool p_print_win_conditions = false;
-    bool p_print_levels = false;
+    bool p_print_levels = true;
 
     if(p_print_objects)
     {
@@ -327,6 +330,14 @@ void CompiledGame::print()
     {
         cout << "Compiled levels :\n";
 
+        assert(levels.size() + 1 == levels_messages.size());
+
+        for(const string& msg : levels_messages.front())
+        {
+            cout << "Message : " << msg << "\n";
+        }
+
+        int i = 0;
         for(const auto& level : levels)
         {
             cout << "width : " << level.width << " height : "<< level.height << "\n";
@@ -350,6 +361,13 @@ void CompiledGame::print()
 
             }
             cout << "\n";
+
+            for(const string& msg : levels_messages[i+1])
+            {
+                cout << "Message : " << msg << "\n";
+            }
+
+            i++;
         }
     }
 }

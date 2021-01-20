@@ -668,6 +668,8 @@ void Compiler::compile_rules(const vector<Token<ParsedGame::RulesTokenType>>& p_
         WaitingForRightPatternObjectIdentifier,
         WaitingForCommandOrReturnOrRightPatternStart,
         WaitingForCommandOrReturn,
+        WaitingForMessageContentOrReturn,
+        WaitingForReturn,
     };
 
     RuleCompilingState state = RuleCompilingState::WaitingForLateOrDirectionOrLeftPatternStart;
@@ -683,6 +685,24 @@ void Compiler::compile_rules(const vector<Token<ParsedGame::RulesTokenType>>& p_
         current_rule.result_patterns[0].cells.push_back(CompiledGame::CellRule());
 
         cached_entity_info = CompiledGame::EntityRuleInfo::None;
+    };
+
+    auto accept_return_token = [&](Token<ParsedGame::RulesTokenType> token){
+        //todo make a final check on rule, ie, do the pattern match in size and do the ... correspond ?
+
+        current_rule.rule_line = token.token_line;
+        if(current_rule.is_late_rule)
+        {
+            m_compiled_game.late_rules.push_back(current_rule);
+        }
+        else
+        {
+            m_compiled_game.rules.push_back(current_rule);
+        }
+
+        reset_temp_data();
+
+        state = RuleCompilingState::WaitingForLateOrDirectionOrLeftPatternStart;
     };
 
     reset_temp_data();
@@ -980,32 +1000,54 @@ void Compiler::compile_rules(const vector<Token<ParsedGame::RulesTokenType>>& p_
             case RuleCompilingState::WaitingForCommandOrReturn:
                 if(token.token_type == RulesToken::Return)
                 {
-                    //todo make a final check on rule, ie, do the pattern match in size and do the ... correspond ?
-
-
-                    current_rule.rule_line = token.token_line;
-                    if(current_rule.is_late_rule)
-                    {
-                        m_compiled_game.late_rules.push_back(current_rule);
-                    }
-                    else
-                    {
-                        m_compiled_game.rules.push_back(current_rule);
-                    }
-
-
-                    reset_temp_data();
-
-                    state = RuleCompilingState::WaitingForLateOrDirectionOrLeftPatternStart;
+                    accept_return_token(token);
+                }
+                else if(token.token_type == RulesToken::MESSAGE)
+                {
+                    //the command will be added to the rule once we parse a message content or a return
+                    state = RuleCompilingState::WaitingForMessageContentOrReturn;
                 }
                 else if(find(commands.begin(),commands.end(), token.token_type) != commands.end())
                 {
-                    current_rule.commands.push_back( str_to_enum(enum_to_str(token.token_type, ParsedGame::to_rules_token_type).value_or("ERROR"),CompiledGame::to_command_type).value_or(CompiledGame::CommandType::None));
+                    CompiledGame::Command command;
+                    command.type = str_to_enum(enum_to_str(token.token_type, ParsedGame::to_rules_token_type).value_or("ERROR"),CompiledGame::to_command_type).value_or(CompiledGame::CommandType::None);
+                    current_rule.commands.push_back(command);
                 }
                 else
                 {
                     detect_error(token, "expecting command or return.");
                 }
+            break;
+            //------------------------------------------------------------------
+
+            case RuleCompilingState::WaitingForMessageContentOrReturn:
+            {
+                CompiledGame::Command command;
+                command.type = CompiledGame::CommandType::Message;
+
+                if(token.token_type == RulesToken::MessageContent)
+                {
+                    command.message = token.str_value;
+                    state = RuleCompilingState::WaitingForReturn;
+                }
+                else if(token.token_type == RulesToken::Return)
+                {
+                    accept_return_token(token);
+                }
+                else
+                {
+                    assert(false);
+                    //expecting MessageContent or Return, anything else would probably mean an error in the parser or the compiler
+                }
+                current_rule.commands.push_back(command);
+            }
+            break;
+            //------------------------------------------------------------------
+
+            case RuleCompilingState::WaitingForReturn:
+                assert(token.token_type == RulesToken::Return);
+                //expecting Return, anything else would probably mean an error in the parser or the compiler
+                accept_return_token(token);
             break;
             //------------------------------------------------------------------
 
@@ -1122,6 +1164,10 @@ void Compiler::compile_levels(const vector<Token<ParsedGame::LevelsTokenType>>& 
     int current_tiles_number_on_row = 0;
     int current_height = 0;
 
+    bool waiting_for_message_content_or_return = false;
+
+    m_compiled_game.levels_messages.push_back(vector<string>());
+
     for(auto& token : p_levels_tokens)
     {
         if(m_has_error)
@@ -1129,90 +1175,119 @@ void Compiler::compile_levels(const vector<Token<ParsedGame::LevelsTokenType>>& 
             break;
         }
 
-        switch (token.token_type)
+        if(waiting_for_message_content_or_return)
         {
-        case ParsedGame::LevelsTokenType::Return:
-            if(current_tiles_number_on_row == 0)
+            if(token.token_type == ParsedGame::LevelsTokenType::MessageContent)
             {
-                if(compiling_level_first_line)
-                {
-                    //do nothing, means it just empty lines between levels
-                    break;
-                }
-                //finished parsing a level
-                current_level.height = current_height;
-                m_compiled_game.levels.push_back(current_level);
-
-                current_level = CompiledGame::Level();
-                compiling_level_first_line = true;
-                current_tiles_number_on_row = 0;
-                current_height = 0;
+                m_compiled_game.levels_messages.back().push_back(token.str_value);
+            }
+            else if(token.token_type == ParsedGame::LevelsTokenType::Return)
+            {
+                m_compiled_game.levels_messages.back().push_back("");
             }
             else
             {
-                if(compiling_level_first_line)
+                assert(false);
+            }
+            waiting_for_message_content_or_return = false;
+        }
+        else
+        {
+            switch (token.token_type)
+            {
+            case ParsedGame::LevelsTokenType::Return:
+                if(current_tiles_number_on_row == 0)
                 {
-                    //we just finished parsing the first line of the level
-                    compiling_level_first_line = false;
-                    current_level.width = current_tiles_number_on_row;
+                    if(compiling_level_first_line)
+                    {
+                        //do nothing, means it just empty lines between levels
+                        break;
+                    }
+                    //finished parsing a level
+                    current_level.height = current_height;
+                    m_compiled_game.levels.push_back(current_level);
+
+                    current_level = CompiledGame::Level();
+                    compiling_level_first_line = true;
+                    current_tiles_number_on_row = 0;
+                    current_height = 0;
+
+                    m_compiled_game.levels_messages.push_back(vector<string>());
                 }
                 else
                 {
-                    if(current_tiles_number_on_row != current_level.width)
+                    if(compiling_level_first_line)
                     {
-                        detect_error(token, "levels must be rectangular, this line does not match the width of the first one.");
+                        //we just finished parsing the first line of the level
+                        compiling_level_first_line = false;
+                        current_level.width = current_tiles_number_on_row;
                     }
-                }
-                current_tiles_number_on_row = 0;
-                ++current_height;
-            }
-
-            break;
-
-        case ParsedGame::LevelsTokenType::LevelTile:
-            if(check_identifier_validity(token.str_value,token.token_line, true))
-            {
-                shared_ptr<CompiledGame::Object> obj = get_obj_by_id(token.str_value).lock();
-
-                if(obj->is_properties())
-                {
-                    detect_error(token,"identifier is a property, which cannot be added to a level since it's ambiguous");
-                    break;
-                }
-
-                current_level.cells.push_back(CompiledGame::Cell());
-                obj->GetAllPrimaryObjects(current_level.cells.back().objects);
-
-                //add the default background obj if there's not yet one specified for the tile
-                bool found_a_background_obj = false;
-                for(weak_ptr<CompiledGame::PrimaryObject> prim_obj : current_level.cells.back().objects)
-                {
-                    if(m_background_object.lock()->defines(prim_obj.lock()))
+                    else
                     {
-                        found_a_background_obj = true;
+                        if(current_tiles_number_on_row != current_level.width)
+                        {
+                            detect_error(token, "levels must be rectangular, this line does not match the width of the first one.");
+                        }
+                    }
+                    current_tiles_number_on_row = 0;
+                    ++current_height;
+                }
+
+                break;
+
+            case ParsedGame::LevelsTokenType::LevelTile:
+                if(check_identifier_validity(token.str_value,token.token_line, true))
+                {
+                    shared_ptr<CompiledGame::Object> obj = get_obj_by_id(token.str_value).lock();
+
+                    if(obj->is_properties())
+                    {
+                        detect_error(token,"identifier is a property, which cannot be added to a level since it's ambiguous");
                         break;
                     }
-                }
-                if(!found_a_background_obj)
-                {
-                    current_level.cells.back().objects.push_back(m_default_background_object);
-                }
 
-                ++current_tiles_number_on_row;
+                    current_level.cells.push_back(CompiledGame::Cell());
+                    obj->GetAllPrimaryObjects(current_level.cells.back().objects);
+
+                    //add the default background obj if there's not yet one specified for the tile
+                    bool found_a_background_obj = false;
+                    for(weak_ptr<CompiledGame::PrimaryObject> prim_obj : current_level.cells.back().objects)
+                    {
+                        if(m_background_object.lock()->defines(prim_obj.lock()))
+                        {
+                            found_a_background_obj = true;
+                            break;
+                        }
+                    }
+                    if(!found_a_background_obj)
+                    {
+                        current_level.cells.back().objects.push_back(m_default_background_object);
+                    }
+
+                    ++current_tiles_number_on_row;
+                }
+                break;
+
+            case ParsedGame::LevelsTokenType::MESSAGE:
+                waiting_for_message_content_or_return = true;
+                break;
+
+            default:
+                assert(false);
+                break;
             }
-            break;
-
-        default:
-            //ignore message tokens for now
-            break;
         }
     }
 
-    //Adding the level here in case there was no return token after the last level
+    //Adding the level or the message here in case there was no return token after the last level or last message
     if(compiling_level_first_line == false)
     {
         current_level.height = current_height;
         m_compiled_game.levels.push_back(current_level);
+    }
+    else if( waiting_for_message_content_or_return)
+    {
+        m_compiled_game.levels_messages.back().push_back("");
     }
 
     m_logger->log(PSLogger::LogType::Log, m_compiler_log_cat, "Finished Compiling Levels");

@@ -46,9 +46,9 @@ std::map<string,PSEngine::OperationType, ci_less> PSEngine::to_operation_type ={
     {"LoadGame", OperationType::LoadGame},
 };
 
-vector<CompiledGame::CommandType> PSEngine::SubturnHistory::gather_all_subturn_commands() const
+vector<CompiledGame::Command> PSEngine::SubturnHistory::gather_all_subturn_commands() const
 {
-    vector<CompiledGame::CommandType> commands;
+    vector<CompiledGame::Command> commands;
     for( const auto& step : steps)
     {
         commands.insert(commands.end(), step.rule_applied.commands.begin(), step.rule_applied.commands.end());
@@ -221,16 +221,16 @@ optional<PSEngine::TurnHistory> PSEngine::next_turn()
 
         if(next_subturn())
         {
-            vector<CompiledGame::CommandType> subturn_commands = m_turn_history.subturns.back().gather_all_subturn_commands();
+            vector<CompiledGame::Command> subturn_commands = m_turn_history.subturns.back().gather_all_subturn_commands();
 
             for(const auto& command : subturn_commands)
             {
-                if(command == CompiledGame::CommandType::Win)
+                if(command.type == CompiledGame::CommandType::Win)
                 {
                     win_requested_by_command = true;
                     keep_computing_subturn = false;
                 }
-                else if (command == CompiledGame::CommandType::Cancel)
+                else if (command.type == CompiledGame::CommandType::Cancel)
                 {
                     m_current_level = last_turn_save;
                     TurnHistory cancelled_turn_history = m_turn_history;
@@ -238,7 +238,7 @@ optional<PSEngine::TurnHistory> PSEngine::next_turn()
                     m_turn_history = last_turn_history_save;
                     return optional<PSEngine::TurnHistory>(cancelled_turn_history);
                 }
-                else if (command == CompiledGame::CommandType::Again)
+                else if (command.type == CompiledGame::CommandType::Again)
                 {
                     if(!win_requested_by_command)
                     {

@@ -177,7 +177,7 @@ public:
     {
         vector<RuleDelta> steps;
 
-        vector<CompiledGame::CommandType> gather_all_subturn_commands() const;
+        vector<CompiledGame::Command> gather_all_subturn_commands() const;
     };
 
     struct TurnHistory

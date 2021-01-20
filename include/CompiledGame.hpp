@@ -159,6 +159,7 @@ struct CompiledGame{
         Win,
         Cancel,
         Again,
+        Message,
     };
 
     struct Color
@@ -240,12 +241,18 @@ struct CompiledGame{
         int delta_match_index = -1; //to which cell of the pattern should the object be matched
         int delta_application_index; //to which cell is the pattern applied
         //the last two properties exists because in some case (such as [ A | ] -> [ | A] where A is a group)
-        //the object must be found in the first cell of the pattern, disappear in the first cell, but appear in the second
+        //the object must be found in the first cell of the pattern, disappears in the first cell, but appears in the second
 
         shared_ptr<Object> object;
         ObjectDeltaType delta_type = ObjectDeltaType::None;
 
         bool is_optional = false;
+    };
+
+    struct Command
+    {
+        CommandType type = CommandType::None;
+        string message; //in case it's a message command;
     };
 
     struct Rule
@@ -258,7 +265,7 @@ struct CompiledGame{
         vector<Pattern> match_patterns;
         vector<Pattern> result_patterns;
 
-        vector<CommandType> commands;
+        vector<Command> commands;
 
         vector<Delta> deltas;
 
@@ -307,6 +314,7 @@ struct CompiledGame{
     vector<Rule> late_rules;
     vector<WinCondition> win_conditions;
     vector<Level> levels;
+    vector<vector<string>> levels_messages;
 
     void print();
 };
