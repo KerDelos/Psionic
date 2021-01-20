@@ -114,7 +114,6 @@ protected:
 			if(try_parse_return(false))
 			{
 				detected_word_end = true;
-				m_text_provider->reverse();
 			}
 			else
 			{
@@ -163,7 +162,6 @@ protected:
 			{
 				m_text_provider->reverse();
 			}
-			m_text_provider->advance(); //so the 'm' or 'M' gets back to being the m_current_char
 			return false;
 		}
 	}

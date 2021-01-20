@@ -76,7 +76,7 @@ void TextProviderString::reverse()
 	{
 		--m_current_char_idx;
 		--m_iterator.value();
-		//todo the m_current_char will probably be incorrect
+		m_current_char = *m_iterator.value();
 	}
 }
 char TextProviderString::peek()
@@ -181,7 +181,8 @@ void TextProviderFile::reverse()
 	{
 		--m_current_char_idx;
 		m_file.unget();
-		//todo the m_current_char will probably be incorrect
+		m_file.unget();
+		m_file.get(m_current_char);
 	}
 }
 char TextProviderFile::peek()

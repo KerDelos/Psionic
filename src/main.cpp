@@ -12,17 +12,28 @@
 
 const int TEST_RECORD_VERSION = 1;
 
-optional<CompiledGame> compile_game(string file_path)
+optional<CompiledGame> compile_game(string file_path, bool use_string_text_provider)
 {
     shared_ptr<PSLogger> logger = make_shared<PSLogger>(PSLogger());
     logger->log_verbosity = PSLogger::LogType::Warning;
 
-    std::ifstream ifs(file_path);
-    std::string content( (std::istreambuf_iterator<char>(ifs) ),
-                       (std::istreambuf_iterator<char>()    ) );
+    ParsedGame parsed_game;
 
-    ParsedGame parsed_game = Parser::parse_from_string(content,logger).value_or(ParsedGame());
-    //parsed_game.print_parsed_game(true,true,true,true,true,true,true);
+    if(use_string_text_provider)
+    {
+        std::ifstream ifs(file_path);
+        std::string content( (std::istreambuf_iterator<char>(ifs) ),
+                        (std::istreambuf_iterator<char>()    ) );
+
+        parsed_game = Parser::parse_from_string(content,logger).value_or(ParsedGame());
+    }
+    else
+    {
+        parsed_game = Parser::parse_from_file(file_path,logger).value_or(ParsedGame());
+    }
+
+
+    //parsed_game.print_parsed_game(false,false,false,false,true,false,false);
 
     Compiler puzzle_compiler(logger);
     return puzzle_compiler.compile_game(parsed_game);
@@ -86,7 +97,7 @@ void parse_and_send_game_input(PSEngine& p_engine, char input)
 
 void load_and_run_game(string file_path)
 {
-    std::optional<CompiledGame> compiled_game_opt = compile_game(file_path);
+    std::optional<CompiledGame> compiled_game_opt = compile_game(file_path,false);
     if(!compiled_game_opt.has_value())
     {
         return;
@@ -138,7 +149,7 @@ void run_game_and_record_test_file(string resources_folder_path, string file_nam
 {
     string file_path = resources_folder_path + file_name;
 
-    std::optional<CompiledGame> compiled_game_opt = compile_game(file_path);
+    std::optional<CompiledGame> compiled_game_opt = compile_game(file_path,false);
     if(!compiled_game_opt.has_value())
     {
         cout << "error: cannot record a test file for a file that does not compile.\n";
@@ -236,7 +247,7 @@ void run_game_and_record_test_file(string resources_folder_path, string file_nam
     record_file.close();
 }
 
-bool run_tests(string directory_path, std::chrono::microseconds* duration)
+bool run_tests(string directory_path, bool use_string_text_provider, std::chrono::microseconds* duration)
 {
     auto start_time = std::chrono::high_resolution_clock::now();
 
@@ -247,7 +258,7 @@ bool run_tests(string directory_path, std::chrono::microseconds* duration)
 
     bool has_error = false;
 
-    cout << "Running the tests\n";
+    cout << "Running the tests with the "<< (use_string_text_provider ? "string" :"file") <<" text provider\n";
 
     for (const auto & entry : std::filesystem::directory_iterator(directory_path))
     {
@@ -277,7 +288,7 @@ bool run_tests(string directory_path, std::chrono::microseconds* duration)
 
             getline(test_record_f,record_line);
 
-            std::optional<CompiledGame> compiled_game_opt = compile_game(directory_path + record_line);
+            std::optional<CompiledGame> compiled_game_opt = compile_game(directory_path + record_line,use_string_text_provider);
             if(!compiled_game_opt.has_value())
             {
                 cout << "error: cannot compile associated game, test wont be possible on this game.\n";
@@ -433,7 +444,7 @@ int main(int argc, char *argv[])
 
     if(test_requested)
     {
-        if(run_tests(resources_folder_path, nullptr))
+        if(run_tests(resources_folder_path, false, nullptr) && run_tests(resources_folder_path, true, nullptr))
         {
             cout << "All tests completed with success !\n";
         }
@@ -449,7 +460,7 @@ int main(int argc, char *argv[])
         for(int i = 0; i < run_number; ++i)
         {
             timers.push_back(std::chrono::microseconds());
-            run_tests(resources_folder_path, &timers.back());
+            run_tests(resources_folder_path,false, &timers.back());
         }
 
         auto total = std::accumulate(timers.begin(),timers.end(),0, [](auto sum, auto current){return sum + current.count();});
