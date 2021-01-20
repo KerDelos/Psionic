@@ -228,6 +228,9 @@ public:
 
     int get_number_of_levels() const {return (int)m_compiled_game.levels.size();}
 
+    vector<string> get_messages_before_level(int p_level_idx) const {return m_compiled_game.levels_messages[p_level_idx];}
+    vector<string> get_messages_after_level(int p_level_idx) const {return m_compiled_game.levels_messages[p_level_idx+1];}
+
     void print_game_state(); //todo making this const will require a few changes and maybe some mutables
 
     Level get_level_state() const {return m_current_level;};
