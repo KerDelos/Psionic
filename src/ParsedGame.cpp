@@ -66,6 +66,7 @@ map<string,ParsedGame::RulesTokenType, ci_less> ParsedGame::to_rules_token_type 
 	{"CANCEL", RulesTokenType::CANCEL},
 	{"WIN", RulesTokenType::WIN},
 	{"MESSAGE", RulesTokenType::MESSAGE},
+	{"MessageContent", RulesTokenType::MessageContent},
 	{"SFX0", RulesTokenType::SFX0},
 	{"SFX1", RulesTokenType::SFX1},
 	{"SFX2", RulesTokenType::SFX2},

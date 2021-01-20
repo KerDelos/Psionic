@@ -87,6 +87,7 @@ struct ParsedGame{
         CANCEL,
         WIN,
         MESSAGE,
+        MessageContent,
         SFX0,
         SFX1,
         SFX2,

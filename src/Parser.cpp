@@ -536,9 +536,16 @@ void Parser::parse_rules()
 						m_parsed_game.rules_tokens.push_back(Token<ParsedGame::RulesTokenType>(ParsedGame::RulesTokenType::Dots,"",m_line_counter));
 					}
 					break;
+				case 'm':
+				case 'M':
+					if(!try_parse_message(m_parsed_game.rules_tokens))
+					{
+						parse_rules_word();
+					}
+					break;
 				default:
 					parse_rules_word();
-				break;
+					break;
 			}
 		}
 	}
@@ -706,7 +713,7 @@ void Parser::parse_levels()
 					break;
 				default:
 					if((m_text_provider->get_current_char() != 'm' && m_text_provider->get_current_char() != 'M')
-					|| (!is_line_beggining || !try_parse_levels_message()))
+					|| (!is_line_beggining || !try_parse_message(m_parsed_game.levels_tokens)))
 					{
 						string tile = "";
 						tile.push_back(m_text_provider->get_current_char());
@@ -719,72 +726,6 @@ void Parser::parse_levels()
 	}
 
 	m_logger->log(PSLogger::LogType::Log, m_parser_log_cat, "Finished levels parsing");
-}
-
-bool Parser::try_parse_levels_message()
-{
-	string temp_buffer = "";
-	temp_buffer.push_back(m_text_provider->get_current_char());
-
-	bool detected_word_end = false;
-	while(m_text_provider->is_valid() && !detected_word_end)
-	{
-		m_text_provider->advance();
-		if(try_parse_return(false))
-		{
-			detected_word_end = true;
-			m_text_provider->reverse();
-		}
-		else
-		{
-			switch(m_text_provider->get_current_char())
-			{
-				case ' ':
-					detected_word_end = true;
-				break;
-				default:
-					temp_buffer.push_back(m_text_provider->get_current_char());
-				break;
-			}
-		}
-	}
-
-	ci_equal equal_comp;
-	if(equal_comp("Message",temp_buffer))
-	{
-		//add token message and parse the rest
-		m_parsed_game.levels_tokens.push_back(Token<ParsedGame::LevelsTokenType>(ParsedGame::LevelsTokenType::MESSAGE,"",m_line_counter));
-
-		temp_buffer.clear();
-
-		detected_word_end = false;
-		while(m_text_provider->is_valid() && !detected_word_end)
-		{
-			m_text_provider->advance();
-			if(try_parse_return(false))
-			{
-				detected_word_end = true;
-				m_text_provider->reverse();
-			}
-			else
-			{
-				temp_buffer.push_back(m_text_provider->get_current_char());
-			}
-		}
-		m_parsed_game.levels_tokens.push_back(Token<ParsedGame::LevelsTokenType>(ParsedGame::LevelsTokenType::MessageContent,temp_buffer,m_line_counter));
-
-		return true;
-	}
-	else
-	{
-		//reverse everything and return false, we couldn't properly parse a message token
-		for(auto it = temp_buffer.rbegin(); it != temp_buffer.rend(); it++)
-		{
-			m_text_provider->reverse();
-		}
-		m_text_provider->advance(); //so the 'm' or 'M' gets back to being the m_current_char
-		return false;
-	}
 }
 
 void Parser::parse_equals_row()
