@@ -9,6 +9,8 @@
 using namespace std;
 
 
+const string PSEngine::m_engine_log_cat = "engine";
+
 map<string,PSEngine::InputType, ci_less> PSEngine::to_input_type = {
 	{"None", InputType::None},
 	{"Up", InputType::Up},
@@ -75,7 +77,48 @@ optional<shared_ptr<CompiledGame::PrimaryObject>> PSEngine::Cell::find_colliding
     return nullopt;
 }
 
-const string PSEngine::m_engine_log_cat = "engine";
+void PSEngine::ObjectCache::build_cache(const Level p_level)
+{
+    m_content.clear();
+    for(const auto& cell : p_level.cells )
+    {
+        for(const auto& pair : cell.objects)
+        {
+            add_object_position(pair.first, PSVector2i(cell.x,cell.y));
+        }
+    }
+}
+
+void PSEngine::ObjectCache::add_object_position(const shared_ptr<CompiledGame::PrimaryObject> p_object,PSVector2i p_position)
+{
+    m_content[p_object].insert(p_position);
+}
+
+void PSEngine::ObjectCache::remove_object_position(const shared_ptr<CompiledGame::PrimaryObject> p_object,PSVector2i p_position)
+{
+    m_content[p_object].erase(p_position);
+}
+
+unordered_set<PSVector2i> PSEngine::ObjectCache::get_object_positions(const shared_ptr<CompiledGame::PrimaryObject> p_object)
+{
+    return m_content[p_object];
+}
+
+string PSEngine::ObjectCache::to_string()
+{
+    string res;
+    for(const auto& pair : m_content)
+    {
+        res += pair.first->to_string() + " : ";
+        for(const auto& elem : pair.second)
+        {
+            res += "("+ std::to_string(elem.x) +","+ std::to_string(elem.y)+"), ";
+        }
+        res += "\n";
+    }
+
+    return res;
+}
 
 PSEngine::PSEngine(shared_ptr<PSLogger> p_logger /*= nullptr*/) : PSEngine(Config(),p_logger){}
 
@@ -273,6 +316,8 @@ bool PSEngine::next_subturn()
 
     m_turn_history.subturns.push_back(SubturnHistory());
 
+    m_object_cache.build_cache(m_current_level);
+
     for(const auto& rule : m_compiled_game.rules)
     {
         PS_LOG("Processing rule : " + rule.to_string());
@@ -299,6 +344,8 @@ bool PSEngine::next_subturn()
             PS_LOG("Processing late rule : " + rule.to_string());
             apply_rule(rule);
         }
+
+        PS_LOG(m_object_cache.to_string());
 
         return true;
     }
@@ -753,6 +800,7 @@ void PSEngine::apply_delta(const RuleApplicationDelta& p_delta)
             if(pair == cell->objects.end() )
             {
                 cell->objects.insert(make_pair(obj_delta.object,ObjectMoveType::Stationary));
+                m_object_cache.add_object_position(obj_delta.object,PSVector2i(cell->x,cell->y));
             }
             else
             {
@@ -767,6 +815,7 @@ void PSEngine::apply_delta(const RuleApplicationDelta& p_delta)
             if(pair != cell->objects.end() )
             {
                 cell->objects.erase(pair);
+                m_object_cache.remove_object_position(obj_delta.object,PSVector2i(cell->x,cell->y));
             }
             else
             {

@@ -2,10 +2,12 @@
 
 #include <string>
 #include <map>
+#include <unordered_set>
 
 #include "EnumHelpers.hpp"
 #include "CompiledGame.hpp"
 #include "PSLogger.hpp"
+#include "PSUtils.hpp"
 
 
 #define PS_LOG(p_log_msg){\
@@ -80,6 +82,18 @@ public:
         int width = -1;
         int height = -1;
         vector<Cell> cells;
+    };
+
+    //todo we should probably encapsulate that in the level class
+    class ObjectCache{
+    public:
+        void build_cache(const Level p_level);
+        void add_object_position(const shared_ptr<CompiledGame::PrimaryObject> p_object,PSVector2i p_position);
+        void remove_object_position(const shared_ptr<CompiledGame::PrimaryObject> p_object,PSVector2i p_position);
+        unordered_set<PSVector2i> get_object_positions(const shared_ptr<CompiledGame::PrimaryObject> p_object);
+        string to_string();
+    private:
+        map<const shared_ptr<CompiledGame::PrimaryObject>,unordered_set<PSVector2i>> m_content;
     };
 
     enum class AbsoluteDirection{
@@ -186,7 +200,6 @@ public:
 
         bool was_turn_cancelled = false;
     };
-
 
     struct Operation{
         OperationType operation_type = OperationType::None;
@@ -306,4 +319,6 @@ protected:
     bool m_is_level_won = false;
 
     float m_current_tick_time_elapsed = 0;
+
+    ObjectCache m_object_cache;
 };

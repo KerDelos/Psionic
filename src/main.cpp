@@ -103,9 +103,14 @@ void load_and_run_game(string file_path)
         return;
     }
     CompiledGame compiled_game = compiled_game_opt.value();
-    compiled_game.print();
+    //compiled_game.print();
 
-    PSEngine engine;
+    shared_ptr<PSLogger> logger = make_shared<PSLogger>(PSLogger());
+    logger->log_verbosity = PSLogger::LogType::Log;
+    PSEngine::Config engine_config;
+    engine_config.log_verbosity = PSLogger::LogType::Log;
+
+    PSEngine engine(engine_config,logger);
     engine.load_game(compiled_game);
     engine.Load_first_level();
 
