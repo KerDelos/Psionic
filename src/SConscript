@@ -61,7 +61,7 @@ elif platform_arg == "linux":
     envDebug.Append(CXXFLAGS = ' -Wno-unused-parameter')
     envDebug.Append(CXXFLAGS = ' -Wno-sign-compare')
 
-ps_engine_lib_sources = ["CompiledGame.cpp","Compiler.cpp","PSEngine.cpp","ParsedGame.cpp","Parser.cpp", "PSLogger.cpp", "TextProvider.cpp"]
+ps_engine_lib_sources = ["CompiledGame.cpp","Compiler.cpp","PSEngine.cpp","ParsedGame.cpp","Parser.cpp", "PSLogger.cpp", "TextProvider.cpp", "PSUtils.cpp"]
 ps_engine_lib = envDebug.Library("#build/debug/psengine", ps_engine_lib_sources)
 
 targetDebug = envDebug.Program(target = "#build/debug/interpreter", source = ["main.cpp"], LIBS=['psengine'], LIBPATH='#build/debug/')

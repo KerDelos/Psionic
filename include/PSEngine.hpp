@@ -69,8 +69,7 @@ public:
 
     struct Cell
     {
-        int x = -1;
-        int y = -1;
+        PSVector2i position;
         map<shared_ptr<CompiledGame::PrimaryObject>,ObjectMoveType> objects;
 
         optional<shared_ptr<CompiledGame::PrimaryObject>> find_colliding_object(shared_ptr<CompiledGame::PrimaryObject> obj) const;
@@ -79,8 +78,7 @@ public:
     struct Level
     {
         int level_idx = -1;
-        int width = -1;
-        int height = -1;
+        PSVector2i size;
         vector<Cell> cells;
     };
 
@@ -108,25 +106,22 @@ public:
     {
         vector<int> wildcard_pattern_cell_indexes;
         vector<int> wildcard_match_distances;
-        int x =-1;
-        int y =-1;
+        PSVector2i origin;
     };
 
     struct ObjectDelta
     {
-        int cell_x = -1;
-        int cell_y = -1;
+        PSVector2i cell_position;
         shared_ptr<CompiledGame::PrimaryObject> object;
         CompiledGame::ObjectDeltaType type;
 
-        ObjectDelta(int p_cell_x, int p_cell_y, shared_ptr<CompiledGame::PrimaryObject> p_object, CompiledGame::ObjectDeltaType p_type)
-        :cell_x(p_cell_x), cell_y(p_cell_y), object(p_object), type(p_type){};
+        ObjectDelta(PSVector2i p_cell_position, shared_ptr<CompiledGame::PrimaryObject> p_object, CompiledGame::ObjectDeltaType p_type)
+        :cell_position(p_cell_position), object(p_object), type(p_type){};
 
         friend bool operator==(const ObjectDelta& lhs, const ObjectDelta& rhs){
             bool result = lhs.object == rhs.object;
             result &= lhs.type == rhs.type;
-            result &= lhs.cell_x == rhs.cell_x;
-            result &= lhs.cell_y == rhs.cell_y;
+            result &= lhs.cell_position == rhs.cell_position;
             return result;
         }
     };
@@ -144,10 +139,8 @@ public:
 
     struct MovementDelta
     {
-        int origin_x = -1;
-        int origin_y = -1;
-        int destination_x = -1;
-        int destination_y = -1;
+        PSVector2i origin;
+        PSVector2i destination;
         AbsoluteDirection move_direction;
         shared_ptr<CompiledGame::PrimaryObject> object;
         bool moved_successfully = false;
@@ -292,12 +285,12 @@ protected:
     optional<set<ObjectMoveType>> convert_entity_rule_info_to_allowed_move_types(CompiledGame::EntityRuleInfo p_entity_rule_info, AbsoluteDirection p_rule_app_dir);
     bool does_move_info_matches_rule(ObjectMoveType p_move_type, CompiledGame::EntityRuleInfo p_rule_info, AbsoluteDirection p_rule_dir);
 
-    bool get_move_destination_coord(int p_origin_x, int p_origin_y, ObjectMoveType p_move_type, int& p_out_dest_x, int& p_out_dest_y);
+    bool get_move_destination_coord(PSVector2i p_origin, ObjectMoveType p_move_type, PSVector2i& p_out_destination);
 
     RuleApplicationDelta translate_rule_delta(const CompiledGame::Rule& p_rule, AbsoluteDirection p_rule_app_dir, const vector<PatternMatchInformation>& p_pattern_match_infos);
 
-    Cell* get_cell_from(int p_origin_x, int p_origin_y, int p_distance, AbsoluteDirection p_direction);
-    Cell* get_cell_at(int p_x, int p_y);
+    Cell* get_cell_from(PSVector2i p_origin, int p_distance, AbsoluteDirection p_direction);
+    Cell* get_cell_at(PSVector2i p_position);
 
 
     string get_single_char_obj_alias(const string& p_obj_id);

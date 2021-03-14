@@ -84,7 +84,7 @@ void PSEngine::ObjectCache::build_cache(const Level p_level)
     {
         for(const auto& pair : cell.objects)
         {
-            add_object_position(pair.first, PSVector2i(cell.x,cell.y));
+            add_object_position(pair.first, cell.position);
         }
     }
 }
@@ -560,7 +560,7 @@ PSEngine::RuleApplicationDelta PSEngine::translate_rule_delta(const CompiledGame
                 offset += infos.wildcard_match_distances[i];
             }
         }
-        return get_cell_from(infos.x,infos.y,offset+cell_index,apply_dir);
+        return get_cell_from(infos.origin,offset+cell_index,apply_dir);
     };
 
     for(auto rule_delta : p_rule.deltas)
@@ -606,7 +606,7 @@ PSEngine::RuleApplicationDelta PSEngine::translate_rule_delta(const CompiledGame
                 assert(delta_type != CompiledGame::ObjectDeltaType::None);
             }
 
-            ObjectDelta obj_delta(apply_cell->x,apply_cell->y,matched_primary_obj,delta_type);
+            ObjectDelta obj_delta(apply_cell->position,matched_primary_obj,delta_type);
             delta.object_deltas.push_back(obj_delta);
         }
         else if( !rule_delta.is_optional)
@@ -637,7 +637,7 @@ vector<PSEngine::PatternMatchInformation> PSEngine::match_pattern(const Compiled
                 int wildcard_match_distance = 0;
                 bool matched_wildcard = false;
 
-                while( Cell* board_cell =  get_cell_from(cell.x,cell.y, board_distance + wildcard_match_distance, p_rule_application_direction) )
+                while( Cell* board_cell =  get_cell_from(cell.position, board_distance + wildcard_match_distance, p_rule_application_direction) )
                 {
                     if(does_rule_cell_matches_cell(
                         next_match_cell,
@@ -673,7 +673,7 @@ vector<PSEngine::PatternMatchInformation> PSEngine::match_pattern(const Compiled
             }
             else if(!does_rule_cell_matches_cell(
                 match_cell,
-                get_cell_from(cell.x,cell.y, board_distance, p_rule_application_direction),
+                get_cell_from(cell.position, board_distance, p_rule_application_direction),
                 p_rule_application_direction))
             {
                 match_success = false;
@@ -685,8 +685,7 @@ vector<PSEngine::PatternMatchInformation> PSEngine::match_pattern(const Compiled
 
         if(match_success)
         {
-            current_match.x = cell.x;
-            current_match.y = cell.y;
+            current_match.origin = cell.position;
             match_results.push_back(current_match);
         }
     }
@@ -719,7 +718,7 @@ void PSEngine::apply_rule(const CompiledGame::Rule& p_rule)
                         matched_delta_app_str = enum_to_str(rule_app_dir, to_absolute_direction).value_or("error");
                         for(const auto& m : current_match_combination)
                         {
-                            matched_delta_app_str += " ("+to_string(m.x)+","+to_string(m.y)+") ";
+                            matched_delta_app_str += " ("+to_string(m.origin.x)+","+to_string(m.origin.y)+") ";
                         }
 
                         break;
@@ -729,7 +728,7 @@ void PSEngine::apply_rule(const CompiledGame::Rule& p_rule)
                 string new_rule_match_str = enum_to_str(rule_app_dir, to_absolute_direction).value_or("error");
                 for(const auto& m : current_match_combination)
                 {
-                    new_rule_match_str += " ("+to_string(m.x)+","+to_string(m.y)+") ";
+                    new_rule_match_str += " ("+to_string(m.origin.x)+","+to_string(m.origin.y)+") ";
                 }
 
                 if(add_delta)
@@ -779,7 +778,7 @@ void PSEngine::apply_delta(const RuleApplicationDelta& p_delta)
 {
     for(const ObjectDelta& obj_delta : p_delta.object_deltas)
     {
-        Cell* cell =  get_cell_at(obj_delta.cell_x,obj_delta.cell_y);
+        Cell* cell =  get_cell_at(obj_delta.cell_position);
 
         if(!obj_delta.object)
         {
@@ -800,11 +799,11 @@ void PSEngine::apply_delta(const RuleApplicationDelta& p_delta)
             if(pair == cell->objects.end() )
             {
                 cell->objects.insert(make_pair(obj_delta.object,ObjectMoveType::Stationary));
-                m_object_cache.add_object_position(obj_delta.object,PSVector2i(cell->x,cell->y));
+                m_object_cache.add_object_position(obj_delta.object,cell->position);
             }
             else
             {
-                string cell_coord_str = to_string(cell->x)+","+to_string(cell->y);
+                string cell_coord_str = to_string(cell->position.x)+","+to_string(cell->position.y);
                 PS_LOG_ERROR("cannot add object " +obj_delta.object->identifier+ " since there's already one in the cell ("+cell_coord_str+")");
             }
             //todo check for collisions
@@ -815,11 +814,11 @@ void PSEngine::apply_delta(const RuleApplicationDelta& p_delta)
             if(pair != cell->objects.end() )
             {
                 cell->objects.erase(pair);
-                m_object_cache.remove_object_position(obj_delta.object,PSVector2i(cell->x,cell->y));
+                m_object_cache.remove_object_position(obj_delta.object,cell->position);
             }
             else
             {
-                string cell_coord_str = to_string(cell->x)+","+to_string(cell->y);
+                string cell_coord_str = to_string(cell->position.x)+","+to_string(cell->position.y);
                 PS_LOG_ERROR("cannot delete object " +obj_delta.object->identifier+ " since it wasn't on the cell ("+cell_coord_str+")");
             }
         }
@@ -894,7 +893,7 @@ bool PSEngine::try_to_move_object(Cell& p_containing_cell, shared_ptr<CompiledGa
             AbsoluteDirection dir = str_to_enum(enum_to_str(pair->second,to_object_move_type).value_or("error"), to_absolute_direction).value_or(AbsoluteDirection::None);
             assert(dir != AbsoluteDirection::None);//Could not convert ObjectMoveType to AbsoluteDirection. this should not happen
 
-            if( Cell* dest_cell = get_cell_from(p_containing_cell.x,p_containing_cell.y,1,dir))
+            if( Cell* dest_cell = get_cell_from(p_containing_cell.position,1,dir))
             {
                 shared_ptr<CompiledGame::PrimaryObject> found_object = pair->first;
 
@@ -916,10 +915,8 @@ bool PSEngine::try_to_move_object(Cell& p_containing_cell, shared_ptr<CompiledGa
                 }
 
                 MovementDelta move_delta;
-                move_delta.origin_x = p_containing_cell.x;
-                move_delta.origin_y = p_containing_cell.y;
-                move_delta.destination_x = dest_cell->x;
-                move_delta.destination_y = dest_cell->y;
+                move_delta.origin = p_containing_cell.position;
+                move_delta.destination = dest_cell->position;
                 move_delta.move_direction = dir;
                 move_delta.object = found_object;
 
@@ -992,11 +989,8 @@ bool PSEngine::basic_movement_resolution()
 {
     struct ObjectMoveInfo
     {
-        int origin_x = -1;
-        int origin_y = -1;
-
-        int dest_x = -1;
-        int dest_y = -1;
+        PSVector2i origin;
+        PSVector2i destination;
 
         shared_ptr<CompiledGame::PrimaryObject> obj;
     };
@@ -1021,12 +1015,11 @@ bool PSEngine::basic_movement_resolution()
                     continue;
                 }
                 ObjectMoveInfo move_info;
-                move_info.origin_x = cell.x;
-                move_info.origin_y = cell.y;
+                move_info.origin = cell.position;
                 move_info.obj = pair.first;
 
                 //if some movement is invalid, the whole basic movement resolution is invalid
-                if( !get_move_destination_coord(cell.x,cell.y,pair.second,move_info.dest_x, move_info.dest_y))
+                if( !get_move_destination_coord(cell.position,pair.second,move_info.destination))
                 {
                     return false;
                 }
@@ -1046,7 +1039,7 @@ bool PSEngine::basic_movement_resolution()
     for(const auto& move_info : objects_to_move)
     {
         //check if object is not already in cell
-        Cell* dest_cell = get_cell_at(move_info.dest_x,move_info.dest_y);
+        Cell* dest_cell = get_cell_at(move_info.destination);
 
         if(dest_cell == nullptr)
         {
@@ -1183,21 +1176,21 @@ set<PSEngine::AbsoluteDirection> PSEngine::get_absolute_directions_from_rule_dir
     return results;
 }
 
-bool PSEngine::get_move_destination_coord(int p_origin_x, int p_origin_y, ObjectMoveType p_move_type, int& p_out_dest_x, int& p_out_dest_y)
+bool PSEngine::get_move_destination_coord(PSVector2i p_origin, ObjectMoveType p_move_type, PSVector2i& p_out_destination)
 {
     switch (p_move_type)
     {
         case ObjectMoveType::Up:
-            p_origin_y -= 1;
+            p_origin.y -= 1;
             break;
         case ObjectMoveType::Down:
-            p_origin_y += 1;
+            p_origin.y += 1;
             break;
         case ObjectMoveType::Left:
-            p_origin_x -= 1;
+            p_origin.x -= 1;
             break;
         case ObjectMoveType::Right:
-            p_origin_x += 1;
+            p_origin.x += 1;
             break;
 
         default:
@@ -1206,38 +1199,37 @@ bool PSEngine::get_move_destination_coord(int p_origin_x, int p_origin_y, Object
     }
 
     //check for out of bounds
-    if(p_origin_x >= m_current_level.width || p_origin_x < 0 || p_origin_y >= m_current_level.height || p_origin_y < 0)
+    if(p_origin.x >= m_current_level.size.x || p_origin.x < 0 || p_origin.y >= m_current_level.size.y || p_origin.y < 0)
     {
         //PS_LOG_ERROR("Cannot get move destination cell since the move would be out of bounds");
         return false;
     }
 
-    p_out_dest_x = p_origin_x;
-    p_out_dest_y = p_origin_y;
+    p_out_destination = p_origin;
     return true;
 }
 
-PSEngine::Cell* PSEngine::get_cell_from(int p_origin_x, int p_origin_y, int p_distance, AbsoluteDirection p_direction)
+PSEngine::Cell* PSEngine::get_cell_from(PSVector2i p_origin, int p_distance, AbsoluteDirection p_direction)
 {
     if(p_distance == 0)
     {
-        return get_cell_at(p_origin_x,p_origin_y);
+        return get_cell_at(p_origin);
     }
     else
     {
         switch (p_direction)
         {
         case AbsoluteDirection::Up:
-            return get_cell_from(p_origin_x,p_origin_y-1,p_distance-1,p_direction);
+            return get_cell_from(p_origin + PSVector2i(0,-1),p_distance-1,p_direction);
 
         case AbsoluteDirection::Down:
-            return get_cell_from(p_origin_x,p_origin_y+1,p_distance-1,p_direction);
+            return get_cell_from(p_origin + PSVector2i(0,1),p_distance-1,p_direction);
 
         case AbsoluteDirection::Left:
-            return get_cell_from(p_origin_x-1,p_origin_y,p_distance-1,p_direction);
+            return get_cell_from(p_origin + PSVector2i(-1,0),p_distance-1,p_direction);
 
         case AbsoluteDirection::Right:
-            return get_cell_from(p_origin_x+1,p_origin_y,p_distance-1,p_direction);
+            return get_cell_from(p_origin + PSVector2i(1,0),p_distance-1,p_direction);
 
 
         default:
@@ -1249,16 +1241,16 @@ PSEngine::Cell* PSEngine::get_cell_from(int p_origin_x, int p_origin_y, int p_di
     return nullptr;
 }
 
-PSEngine::Cell* PSEngine::get_cell_at(int p_x, int p_y)
+PSEngine::Cell* PSEngine::get_cell_at(PSVector2i p_position)
 {
     //check for out of bounds
-    if(p_x >= m_current_level.width || p_x < 0 || p_y >= m_current_level.height || p_y < 0)
+    if(p_position.x >= m_current_level.size.x || p_position.x < 0 || p_position.y >= m_current_level.size.y || p_position.y < 0)
     {
         //PS_LOG_ERROR("Cannot get move destination cell since the move would be out of bounds");
         return nullptr;
     }
 
-    return &m_current_level.cells[p_x + p_y*m_current_level.width];
+    return &m_current_level.cells[p_position.x + p_position.y*m_current_level.size.x];
 }
 
 void PSEngine::load_level_internal(int p_level_idx)
@@ -1277,8 +1269,7 @@ void PSEngine::load_level_internal(int p_level_idx)
     m_current_level = Level();
 
     m_current_level.level_idx = p_level_idx;
-    m_current_level.width = compiled_level.width;
-    m_current_level.height = compiled_level.height;
+    m_current_level.size = PSVector2i(compiled_level.width, compiled_level.height);
 
 
     for(int i = 0; i < compiled_level.cells.size(); ++i)
@@ -1287,8 +1278,7 @@ void PSEngine::load_level_internal(int p_level_idx)
 
         m_current_level.cells.push_back(Cell());
 
-        m_current_level.cells.back().x = i % m_current_level.width;
-        m_current_level.cells.back().y = i / m_current_level.width;
+        m_current_level.cells.back().position = PSVector2i( i % m_current_level.size.x, i / m_current_level.size.x);
 
         for(weak_ptr<CompiledGame::PrimaryObject> obj : cell.objects)
         {
@@ -1327,8 +1317,8 @@ void PSEngine::print_game_state()
     string print_result_str = "\n";
 
     const int cell_draw_size = 2;
-    const int width = m_current_level.width;
-    const int height = m_current_level.height;
+    const int width = m_current_level.size.x;
+    const int height = m_current_level.size.y;
 
     vector<string> lines_to_draw;
 
@@ -1504,8 +1494,8 @@ void PSEngine::print_subturns_history() const
                     result += "\t";
                     result += (move_delta.object.get() != nullptr ? move_delta.object->identifier : "nullptr") + " ";
                     result += "moved " + enum_to_str(move_delta.move_direction,to_absolute_direction).value_or("ERROR");
-                    result += " from ("+ to_string(move_delta.origin_x)+","+to_string(move_delta.origin_y);
-                    result += ") to ("+to_string(move_delta.destination_x)+","+to_string(move_delta.destination_y)+")\n";
+                    result += " from ("+ to_string(move_delta.origin.x)+","+to_string(move_delta.origin.y);
+                    result += ") to ("+to_string(move_delta.destination.x)+","+to_string(move_delta.destination.y)+")\n";
                 }
             }
             else
@@ -1516,13 +1506,13 @@ void PSEngine::print_subturns_history() const
                     string rule_match_str = enum_to_str(rule_app_delta.rule_direction, to_absolute_direction).value_or("error");
                     for(const auto& m : rule_app_delta.match_infos)
                     {
-                        rule_match_str += " ("+to_string(m.x)+","+to_string(m.y)+") ";
+                        rule_match_str += " ("+to_string(m.origin.x)+","+to_string(m.origin.y)+") ";
                     }
 
                     result += "\t" + rule_match_str + "\n";
                     for(const auto& object_delta : rule_app_delta.object_deltas)
                     {
-                        result += "\t\t" + to_string(object_delta.cell_x)+","+to_string(object_delta.cell_y)+" ";
+                        result += "\t\t" + to_string(object_delta.cell_position.x)+","+to_string(object_delta.cell_position.y)+" ";
                         result += (object_delta.object.get() != nullptr ? object_delta.object->identifier : "nullptr") + " ";
                         result += enum_to_str(object_delta.type,CompiledGame::to_object_delta_type).value_or("ERROR") + "\n";
                     }

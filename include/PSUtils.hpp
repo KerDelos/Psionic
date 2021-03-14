@@ -14,6 +14,13 @@ struct PSVector2i
     bool operator==(const PSVector2i& other) const {
         return x == other.x && y == other.y;
     }
+
+    PSVector2i operator+(const PSVector2i& other) {
+        return PSVector2i(this->x + other.x, this->y + other.y);
+    }
+    PSVector2i operator-(const PSVector2i& other) {
+        return PSVector2i(this->x - other.x, this->y - other.y);
+    }
 };
 
 namespace std {
