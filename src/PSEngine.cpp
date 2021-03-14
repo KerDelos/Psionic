@@ -617,12 +617,34 @@ PSEngine::RuleApplicationDelta PSEngine::translate_rule_delta(const CompiledGame
 
     return delta;
 }
-vector<PSEngine::PatternMatchInformation> PSEngine::match_pattern(const CompiledGame::Pattern& p_pattern, AbsoluteDirection p_rule_application_direction)
+vector<PSEngine::PatternMatchInformation> PSEngine::match_pattern(const CompiledGame::Pattern& p_pattern, AbsoluteDirection p_rule_application_direction, optional<unordered_set<PSVector2i>> p_application_positions)
 {
     vector<PatternMatchInformation> match_results;
 
-    for(const auto& cell : m_current_level.cells)
+    vector<Cell*> cells_subset;
+    if(p_application_positions.has_value())
     {
+        for(const auto& position : p_application_positions.value())
+        {
+            cells_subset.push_back(get_cell_at(position));
+        }
+    }
+
+    //todo : this is quite ugly but it's late and i juste want to finish this
+    int i_max = p_application_positions.has_value() ? p_application_positions.value().size() : m_current_level.cells.size();
+    for(int i = 0; i < i_max; ++i)
+    {
+        //todo: why bother at all retrieving the cell ? we seem to only care about the position
+        Cell* cell = nullptr;
+        if(p_application_positions.has_value())
+        {
+            cell = cells_subset[i];
+        }
+        else
+        {
+            cell = get_cell_at(i);
+        }
+
         bool match_success = true;
         PatternMatchInformation current_match;
         int board_distance = 0; //cannot use i to navigate the board since it does not take into account potentials "..." offsets
@@ -637,7 +659,7 @@ vector<PSEngine::PatternMatchInformation> PSEngine::match_pattern(const Compiled
                 int wildcard_match_distance = 0;
                 bool matched_wildcard = false;
 
-                while( Cell* board_cell =  get_cell_from(cell.position, board_distance + wildcard_match_distance, p_rule_application_direction) )
+                while( Cell* board_cell =  get_cell_from(cell->position, board_distance + wildcard_match_distance, p_rule_application_direction) )
                 {
                     if(does_rule_cell_matches_cell(
                         next_match_cell,
@@ -673,7 +695,7 @@ vector<PSEngine::PatternMatchInformation> PSEngine::match_pattern(const Compiled
             }
             else if(!does_rule_cell_matches_cell(
                 match_cell,
-                get_cell_from(cell.position, board_distance, p_rule_application_direction),
+                get_cell_from(cell->position, board_distance, p_rule_application_direction),
                 p_rule_application_direction))
             {
                 match_success = false;
@@ -685,7 +707,7 @@ vector<PSEngine::PatternMatchInformation> PSEngine::match_pattern(const Compiled
 
         if(match_success)
         {
-            current_match.origin = cell.position;
+            current_match.origin = cell->position;
             match_results.push_back(current_match);
         }
     }
@@ -693,8 +715,67 @@ vector<PSEngine::PatternMatchInformation> PSEngine::match_pattern(const Compiled
     return match_results;
 }
 
+optional<unordered_set<PSVector2i>> PSEngine::find_cells_for_rule_application(const CompiledGame::Rule& p_rule)
+{
+    assert(p_rule.match_patterns.size() > 0);
+    assert(p_rule.match_patterns[0].cells.size() > 0);
+
+    int min = -1;
+    unordered_set<PSVector2i> min_set;
+
+    //for now only look for the element in the first cell of the first pattern that is the rarest in the level
+    for(const auto& obj_pair :  p_rule.match_patterns[0].cells[0].content)
+    {
+        if(obj_pair.first->is_aggregate() || obj_pair.second == CompiledGame::EntityRuleInfo::No)
+        {
+            //todo :
+            //aggregates and the no keyword is not supported here for now
+            //probably have to find a way to efficiently intersect two sets to make it possible??
+            continue;
+        }
+
+        vector<weak_ptr<CompiledGame::PrimaryObject>> primary_objects;
+        obj_pair.first->GetAllPrimaryObjects(primary_objects, true);
+        unordered_set<PSVector2i> current_set;
+
+        for(const auto& prim_obj : primary_objects)
+        {
+            unordered_set<PSVector2i> obj_set = m_object_cache.get_object_positions(prim_obj.lock());
+            //todo : write my own unordered_set union since i couldn't find one in the std :/
+            for( const auto& pos : obj_set)
+            {
+                current_set.insert(pos);
+            }
+        }
+
+
+        if (min == -1 || current_set.size() < min)
+        {
+            min = current_set.size();
+            min_set = current_set;
+        }
+    }
+
+    if(min == -1)
+    {
+        return nullopt;
+    }
+    else
+    {
+        return optional<unordered_set<PSVector2i>>(min_set);
+    }
+}
+
 void PSEngine::apply_rule(const CompiledGame::Rule& p_rule)
 {
+    optional<unordered_set<PSVector2i>> application_positions = find_cells_for_rule_application(p_rule);
+
+    if(application_positions.has_value() && application_positions.value().size() == 0)
+    {
+        //there is currently no cell where this rule could be applied in the level
+        return;
+    }
+
     RuleDelta rule_delta;
 
     set<AbsoluteDirection> application_directions = get_absolute_directions_from_rule_direction(p_rule.direction);
@@ -744,7 +825,8 @@ void PSEngine::apply_rule(const CompiledGame::Rule& p_rule)
             }
             else
             {
-                vector<PatternMatchInformation> matched_patterns = match_pattern(p_rule.match_patterns[rule_pattern_index], rule_app_dir);
+                //todo: for now only send the application position for the first pattern, this is a bit hacky
+                vector<PatternMatchInformation> matched_patterns = match_pattern(p_rule.match_patterns[rule_pattern_index], rule_app_dir, (rule_pattern_index == 0) ? application_positions : nullopt);
 
                 for(const auto& match : matched_patterns)
                 {
@@ -1251,6 +1333,11 @@ PSEngine::Cell* PSEngine::get_cell_at(PSVector2i p_position)
     }
 
     return &m_current_level.cells[p_position.x + p_position.y*m_current_level.size.x];
+}
+
+PSEngine::Cell* PSEngine::get_cell_at(int p_index)
+{
+    return get_cell_at(PSVector2i(p_index % m_current_level.size.x, p_index / m_current_level.size.x));
 }
 
 void PSEngine::load_level_internal(int p_level_idx)

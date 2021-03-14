@@ -262,6 +262,7 @@ protected:
     bool next_subturn();
 
     void apply_rule(const CompiledGame::Rule& p_rule);
+    optional<unordered_set<PSVector2i>> find_cells_for_rule_application(const CompiledGame::Rule& p_rule);
 
     void apply_delta(const RuleApplicationDelta& p_delta);
 
@@ -276,7 +277,7 @@ protected:
     bool check_win_conditions();
     bool check_win_condition(const CompiledGame::WinCondition& p_win_condition);
 
-    vector<PatternMatchInformation> match_pattern(const CompiledGame::Pattern& p_pattern, AbsoluteDirection p_rule_application_direction);
+    vector<PatternMatchInformation> match_pattern(const CompiledGame::Pattern& p_pattern, AbsoluteDirection p_rule_application_direction, optional<unordered_set<PSVector2i>> p_application_positions);
 
     bool does_rule_cell_matches_cell(const CompiledGame::CellRule& p_rule_cell, const Cell* p_cell, AbsoluteDirection p_rule_application_direction);
 
@@ -291,6 +292,7 @@ protected:
 
     Cell* get_cell_from(PSVector2i p_origin, int p_distance, AbsoluteDirection p_direction);
     Cell* get_cell_at(PSVector2i p_position);
+    Cell* get_cell_at(int p_index);
 
 
     string get_single_char_obj_alias(const string& p_obj_id);
