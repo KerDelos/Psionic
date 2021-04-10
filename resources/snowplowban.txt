@@ -1,0 +1,326 @@
+title snowplowban
+author jb & kerdelos
+
+
+========
+OBJECTS
+========
+
+Background
+lightblue white
+11111
+01111
+11101
+11111
+10111
+
+House
+Brown DarkBrown White
+22122
+21012
+10001
+02010
+00010
+
+SnowHouse
+Brown DarkBrown White LightBlue
+33133
+31013
+32223
+32223
+33333
+
+Wall
+BROWN Green
+.....
+..1..
+.111.
+11111
+..0..
+
+Player
+Black Orange Red Blue
+.000.
+.111.
+22222
+.333.
+.3.3.
+
+Snow
+LightBlue White
+00000
+01110
+01110
+01110
+00000
+
+Snow1
+gray
+00000
+00000
+00000
+00000
+00000
+
+Snow2
+black
+00000
+00000
+00000
+00000
+00000
+
+Flag
+Red Orange
+.....
+.100.
+.100.
+.1...
+.....
+
+Hole
+lightblue black gray
+00000
+02220
+01110
+01110
+00000
+
+FilledHole
+lightblue white
+11101
+01111
+10101
+11110
+11011
+
+Track
+Blue
+.....
+.0.0.
+.....
+.0.0.
+.....
+
+
+=======
+LEGEND
+=======
+
+. = Background
+# = Wall
+P = Player
+* = Snow
+@ = SnowHouse
+O = House
+F = Flag
+X = Hole
+H = FilledHole
+T = Track
+Y = Track and Snow
+
+
+=======
+SOUNDS
+=======
+
+
+================
+COLLISIONLAYERS
+================
+ 
+Background
+FilledHole
+Snow
+Snow1
+Snow2
+Flag, Track
+Player, House, SnowHouse, Wall, Hole
+
+
+======
+RULES
+======
+
+[ > Player | Snow] -> [ > Player | ^ Snow1 v Snow2]
+
+late down [ Snow1 Snow | ] -> [ Snow | Snow1 ] again
+late down [ Snow2 Snow | ] -> [ Snow | Snow2 ] again
+
+late right [Snow1 Wall] -> [Wall]
+late right [Snow2 Wall] -> [Wall]
+late right [Snow1 No Snow] -> [Snow]
+late right [Snow2 No Snow] -> [Snow]
+late right [Snow House] -> [SnowHouse]
+late right [Snow SnowHouse] -> [SnowHouse] 
+late right [Snow Player] -> [Snow]
+late right [Snow Hole] -> [FilledHole]
+
+
+==============
+WINCONDITIONS
+==============
+
+No SnowHouse
+All Flag on Player
+No Track on Snow
+
+
+=======
+LEVELS
+=======
+
+###########
+#####.#####
+#....*....#
+#.*.#.#.*.#
+##.#####.##
+##p#####f##
+###########
+
+#######
+#....f#
+#.....#
+#*****#
+#.....#
+#.p...#
+#######
+
+###########
+####.######
+#...*.....#
+#.p.*.....#
+####.#****#
+#o##.#..f.#
+###########
+
+########
+#.f.y.##
+#.....##
+#y....##
+#....p#o
+#######o
+
+#########
+#.f...t.#
+#.....t.#
+#.tyyyt.#
+#.t.....#
+#.t...p.#
+#########
+
+(A)
+########
+##y....#
+o#y..f.#
+.#y..p.#
+.#y....#
+.#######
+
+#########
+#f.o#...#
+#...#...#
+#..***.p#
+#...#o..#
+#####...#
+#########
+
+(D)
+##########
+#.f.#....#
+#....*...#
+#....*...#
+#....*.p.#
+#o...*...#
+#####o...#
+##########
+
+##########
+#f.o#..t.#
+#...#..t.#
+#..****y.#
+#...#o...#
+#####.o.p#
+##########
+
+(B)
+############
+#.....****.#
+#.f..#**y*.#
+#.....**y*.#
+#.....**y*.#
+#.....*yy*.#
+#.....*y**.#
+#.p..#*y**.#
+#.....*y**.#
+############
+
+(F)
+#############
+#.f.********#
+#...*......*#
+#*********.*#
+#***o*****.*#
+#*********.*#
+#*********.*#
+#*...*****p*#
+#******o**.*#
+#***********#
+#***********#
+#############
+
+#########
+####*...#
+#p*x....#
+#..####x#
+####....#
+#o.#f...#
+#########
+
+(E1)
+############
+#f#........#
+#.#......p.#
+#.#........#
+#.#*******.#
+#.#.o.o.o..#
+#..x.x.x.x.#
+#..o.o.o.o.#
+############
+
+(G)
+#############
+#***********#
+#***yyyyyy**#
+#f.......t..#
+#.......#t..#
+#.tttttttt..#
+#.t.........#
+#.ttttttt...#
+#..oooootoo.#
+#..oooootoo.#
+#...ttttt.p.#
+###ooooooo###
+#############
+
+(E2)
+############
+#f#x.x.x.x.#
+#.#*******.#
+#.#.o.o.o.p#
+#..x.x.x.x.#
+#..o.o.o.o.#
+############
+
+###########
+#***x....f#
+#**y#..o.p#
+#**y#o....#
+#*yy#ty...#
+#*y*#t#o..#
+#yy*#t#...#
+#y**#t#...#
+#y**.x....#
+#.#.#o#####
+#...####o#o
+#######o.o.

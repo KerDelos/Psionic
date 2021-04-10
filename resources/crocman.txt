@@ -1,0 +1,102 @@
+title brackeys game jam
+author Damien
+realtime_interval 0.5
+
+========
+OBJECTS
+========
+
+Background
+GREEN
+
+Cave
+DarkBlue
+.000.
+00000
+00.00
+0...0
+0...0
+
+Wall
+DARKBROWN
+
+apple
+red green lightred
+...1.
+..1..
+.002.
+00000
+.000.
+
+Player
+Blue
+
+trex
+darkgreen
+00...
+.0...
+.0...
+.000.
+.0.0.
+
+=======
+LEGEND
+=======
+
+. = Background
+# = Wall
+P = Player
+C = Cave
+a = apple
+t = trex
+
+
+=======
+SOUNDS
+=======
+
+
+================
+COLLISIONLAYERS
+================
+
+Background
+Cave, apple
+trex,
+Player, Wall
+
+======
+RULES
+======
+
+[stationary Player ] [ trex]  -> [stationary Player ]  [ right trex]
+
+[trex | ... | Player ] -> [ > trex | ... | Player]
+
+late [ Player apple ] -> [ Player ]
+late [ Player trex ] -> [trex]
+
+==============
+WINCONDITIONS
+==============
+
+No apple
+All Player on Cave
+
+=======
+LEVELS
+=======
+
+
+################
+#.P............#
+#....t...a.....#
+#...t..........#
+#..t...........#
+#.t...a........#
+#..t...........#
+#...t..........#
+#..............#
+#.......c......#
+################
+

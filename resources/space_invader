@@ -1,0 +1,143 @@
+title space invaders
+author damien
+homepage www.puzzlescript.net
+realtime_interval 0.5
+
+========
+OBJECTS
+========
+
+flag_down_on
+green
+
+flag_down_off
+red
+
+Background
+black
+
+InvaderLeft
+green
+.....
+0.0..
+0000.
+00000
+.....
+
+InvaderRight
+green
+....0
+..0.0
+.0000
+00000
+.....
+
+Defense
+Brown
+.....
+.....
+..0..
+.....
+.....
+
+
+Player
+Blue
+
+
+missile
+yellow
+.....
+..0..
+..0..
+..0..
+.....
+
+
+=======
+LEGEND
+=======
+
+Invader = InvaderLeft or InvaderRight
+flag = flag_down_on or flag_down_off
+
+f = flag_down_off
+. = Background
+# = Defense
+P = Player
+* = InvaderRight
+
+
+=======
+SOUNDS
+=======
+
+================
+COLLISIONLAYERS
+================
+
+flag
+Background
+Missile
+Invader
+Player, Defense
+
+======
+RULES
+======
+
+[flag_down_on] -> [ flag_down_off]
+
+[ stationary Player ] [ missile] -> [ stationary Player ] [ up missile]
+
+[stationary Player] [ InvaderRight] -> [stationary Player] [ right InvaderRight]
+[stationary Player] [ InvaderLeft] -> [stationary Player] [ left InvaderLeft]
+
+left [> InvaderLeft | Defense ] [ flag_down_off ] -> [> InvaderLeft | Defense ] [ flag_down_on ]
+right [ > InvaderRight | Defense ] [ flag_down_off ] -> [> InvaderRight | Defense ] [ flag_down_on ]
+
+[flag_down_on] [InvaderLeft ] -> [flag_down_on] [InvaderRight]
+[flag_down_on] [InvaderRight ] -> [flag_down_on] [InvaderLeft]
+
+
+
+down [flag_down_on ] [ Invader ] -> [flag_down_on] [> Invader]
+
+vertical [> Player ] -> [Player]
+
+up [ action Player | ] -> [ Player | missile ]
+
+
+
+late [ missile Invader ] -> []
+
+
+
+
+==============
+WINCONDITIONS
+==============
+
+no Invader
+
+=======
+LEVELS
+=======
+
+
+###################f
+#......*...........#
+#...*..............#
+#..................#
+#.......*...*..*...#
+#..................#
+#..................#
+#..................#
+#..................#
+#..................#
+#..................#
+#..................#
+#..#..#..#..#..#..##
+#................P.#
+#..................#
+####################

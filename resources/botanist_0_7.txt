@@ -1,0 +1,466 @@
+title Botanist
+author Damien
+
+========
+OBJECTS
+========
+
+starship
+red white
+.....
+..1..
+.000.
+.111.
+.0.0.
+
+path
+lightgray
+
+
+NormalGround
+LIGHTGREEN
+
+
+Wall
+darkgray
+
+
+shallowwater
+blue
+
+deepwater
+darkblue
+
+muddyground
+lightblue lightgreen
+11111
+10011
+10001
+10001
+11111
+
+PlayerWithoutShovel
+black white blue
+.....
+.111.
+.121.
+.111.
+.....
+
+
+
+PlayerWithShovel
+black white brown
+.....
+.111.
+.121.
+.111.
+.....
+
+hole
+black
+.....
+.000.
+.000.
+.000.
+.....
+
+dirt
+darkbrown
+.....
+.000.
+.000.
+.000.
+.....
+
+
+(tree plant)
+treePot
+brown lightgreen
+.....
+..0..
+.010.
+..0..
+.....
+
+newtree
+green
+.....
+..0..
+.000.
+..0..
+.....
+
+
+TreePlant1
+lightgreen green
+..1..
+.101.
+10001
+.101.
+..1..
+
+
+TreePlant2
+green darkgreen
+..1..
+.101.
+10001
+.101.
+..1..
+
+(lilly plant)
+
+lillypot
+brown blue
+.....
+..0..
+.010.
+..0..
+.....
+
+
+lillyplant
+lightgreen green
+..1..
+.101.
+10001
+.101.
+..1..
+
+
+(reed plant)
+reedpot
+brown yellow
+.....
+..0..
+.010.
+..0..
+.....
+
+reedplant
+yellow
+.0...
+...0.
+0....
+..0..
+0..0.
+
+
+=======
+LEGEND
+=======
+
+e = shallowwater
+b = deepwater
++ = NormalGround
+m = muddyground
+: = path
+# = Wall
+P = PlayerWithoutShovel
+S = starship
+
+h = hole and NormalGround
+d = dirt and NormalGround
+
+water = shallowwater or deepwater
+
+Player = PlayerWithShovel or PlayerWithoutShovel
+
+w = PlayerWithoutShovel and path
+y = starship and path
+o = treePot and NormalGround
+g = treepot and path
+f = dirt and path
+u = reedpot and NormalGround
+i = TreePlant2 and NormalGround
+j = reedplant and NormalGround
+n = lillypot and NormalGround
+a = lillypot and path
+
+
+
+PlantPlant = TreePlant1 or TreePlant2
+PlantPot = treePot or reedpot or lillypot
+PlantNew = newtree
+
+Background =  NormalGround  or path or water or muddyground
+
+dirt_dig_col = PlantPot or PlantNew or PlantPlant or starship or wall or dirt or reedplant
+hole_dig_col = dirt_dig_col or hole or path
+
+movable_col = dirt_dig_col
+
+player_jump_col = PlantPot or PlantNew or PlantPlant or starship or wall or dirt or water
+movable_jump_col = dirt_dig_col
+
+ungrowable = path
+
+movable = dirt or PlantPot
+
+stuff = reedplant or lillyplant
+=======
+SOUNDS
+=======
+
+
+================
+COLLISIONLAYERS
+================
+
+Background
+hole,
+lillyplant, reedplant
+dirt,
+Player, Wall, PlantPlant, PlantPot, PlantNew
+
+starship
+
+======
+RULES
+======
+
+[> Player] -> [> Player] message [{"signal" : "player_movement"}]
+[action PlayerWithoutShovel] -> [PlayerWithShovel]
+[action PlayerWithShovel] -> [PlayerWithoutShovel]
+
+(digging for normal ground)
+[hole | no hole_dig_col NormalGround| < PlayerWithShovel ] -> [dirt hole | hole NormalGround| PlayerWithoutShovel ]
+[no dirt_dig_col |  no hole_dig_col NormalGround | < PlayerWithShovel ] -> [dirt | hole NormalGround| PlayerWithoutShovel ]
+(digging for muddy ground)
+[hole | no hole_dig_col muddyground| < PlayerWithShovel ] -> [dirt hole | shallowwater | PlayerWithoutShovel ]
+[no dirt_dig_col | no hole_dig_col muddyground | < PlayerWithShovel ] -> [dirt | shallowwater | PlayerWithoutShovel ]
+(digging general last rule)
+[ | < PlayerWithShovel ] -> [ | PlayerWithoutShovel]
+
+
+(where the player cannot walk)
+[ > Player | hole ] -> [ Player | hole ]
+[ > Player | water no lillyplant ] -> [ Player | water]
+
+
+(pushing movables)
+[> Player | movable] -> [> Player | > movable]
+
+(where movable stuff cannot move)
+[ > movable | movable_col no hole ] -> [ movable | movable_col ]
+
+
+late [ Dirt hole treePot ] -> [ newtree ]
+late [ Dirt hole lillypot ] -> [ lillypot ]
+late [ water lillypot no lillyplant ] -> [ water lillyplant ] (should we only be able to plant lilly on shallow water ?)
+late [ Dirt hole reedpot ] -> [ reedplant ]
+late [ Dirt  hole ] -> [] message [{"signal" : "hole_filled"}]
+late [ Dirt shallowwater no lillyplant ] -> [ muddyground ]
+late [ Dirt deepwater no lillyplant ] -> [deepwater]
+
+(tree growth)
+late [TreePlant1 ] -> [TreePlant2]
+late [newtree] -> [TreePlant1]
+
+
+late [Player dirt ] -> [] cancel
+
+
+(cancel)
+late [treePot water no lillyplant] -> [] cancel
+late [reedpot water no lillyplant] -> [] cancel
+
+==============
+WINCONDITIONS
+==============
+
+
+no hole
+no dirt
+no PlantPot
+
+=======
+LEVELS
+=======
+
+message oh no this garden is full of holes
+
+message [{ "content" : "Move with the arrow keys", "displayed" : true, "signal_off" : "player_movement"}]
+
+message [{ "content" : "Push back the dirt in the holes", "displayed" : false, "signal_on" : "player_movement", "signal_off" : "hole_filled", "display_once" : true}]
+
+bbbbbbbbbbb
+beeeeeeeeeb
+be+++:+++eb
+be+++:+h+eb
+be+hd:+d+eb
+be+++:dh+eb
+be+++w+++eb
+beeeeeeeeeb
+bbbbbbbbbbb
+
+message but you can plant trees in holes
+
+bbbbbbbbbbb
+beeeeeeeeeb
+be+++:+++eb
+be+++:+d+eb
+be+++:+h+eb
+be+++:+o+eb
+be+++w+++eb
+beeeeeeeeeb
+bbbbbbbbbbb
+
+message with lots of holes you can plant lots of trees
+
+bbbbbbbbbbb
+beeeeeeeeeb
+be+++:+++eb
+be+dh:od+eb
+be+d+:+d+eb
+beooo:+++eb
+behhhw+++eb
+beeeeeeeeeb
+bbbbbbbbbbb
+
+message but did you know you can also dig holes by pressing X and movin ?
+
+bbbbbbbbbbb
+beeeeeeeeeb
+be+++:+++eb
+be+++:+++eb
+be+o+:+++eb
+be+++:+o+eb
+be+++w+++eb
+beeeeeeeeeb
+bbbbbbbbbbb
+
+bbbbbbbbbbb
+beeeeeeeeeb
+be+++:+++eb
+be+dh:od+eb
+be+dh:+d+eb
+beood:+++eb
+behhhwo++eb
+beeeeeeeeeb
+bbbbbbbbbbb
+
+bbbbbbbbbbbbb
+beeeeeeeeeeeb
+be++hw+++++eb
+be++h:oo+d+eb
+be+dh:o++++eb
+be+dh:o+d++eb
+be++h:o++d+eb
+beeeeeeeeeeeb
+bbbbbbbbbbbbb
+
+
+message time to learn about the water plants
+
+bbbbbbbbb
+beeeeeeeb
+beeeeeeeb
+beeaaaeeb
+be:::::eb
+be:###:eb
+be:::::eb
+be::w::eb
+beeeeeeeb
+bbbbbbbbb
+
+bbbbbbbbb
+beeeeeeeb
+beeeeeeeb
+be:##eeeb
+beaaee#eb
+be:aa##eb
+be::::eeb
+be::w:eeb
+beeeeeeeb
+bbbbbbbbb
+
+bbbbbbbbbbbbb
+beeeeeeeeeeeb
+beee:::::::eb
+be:eeee::::eb
+be:e::eeeeeeb
+be:e:aeaa#:eb
+be:e::e::eaeb
+beeeeeeeee:eb
+be:e:a:e:a:eb
+be:e:::e:::eb
+be:e:w:eeeeeb
+beeeeeeeeeeeb
+bbbbbbbbbbbbb
+
+bbbbbbbbbbbbb
+beeeeeeeeeeeb
+beee:::::::eb
+be:eee:a:::eb
+be:e:aeeeeeeb
+be:e:aeaa#:eb
+be:e::e:eeaeb
+beeeeeee#e:eb
+be:e:a:e:a:eb
+be:e:::e:::eb
+be:e:w:eeeeeb
+beeeeeeeeeeeb
+bbbbbbbbbbbbb
+
+message make sure not to leave holes in the garden !
+
+bbbbbbbbbbbbbb
+beeeeeeeeeeeeb
+be::::e:::::eb
+be::::e:gh::eb
+be::::e:a:f:eb
+beeg:eeeeeeeeb
+bee:ae:f::::eb
+beeh:e:a:ee:eb
+beeeeeeeee::eb
+bee:a:f:e:f:eb
+bee:::::e:h:eb
+bee:hg:we:::eb
+beeeeeeeeeeeeb
+bbbbbbbbbbbbbb
+
+bbbbbbbbbbb
+beeeeeeeeeb
+be+++:+++eb
+be+++:+++eb
+be++n:+++eb
+beeeeeeeeeb
+be+++:+++eb
+be+o+:+++eb
+be+++w+++eb
+beeeeeeeeeb
+bbbbbbbbbbb
+
+message look ! some reeds !
+
+bbbbbbbbbbbb
+beeeeeeeeeeb
+be++jjeeeeeb
+be+++jee++eb
+be+:fh::+ueb
+be+f+uje+heb
+be+:::eej+eb
+beeee:eeeeeb
+beejjjjjeeeb
+beej+:+jeeeb
+beej+w+jeeeb
+beeeeeeeeeeb
+bbbbbbbbbbbb
+
+message and don't leave any dirt around please !
+
+bbbbbbbbbb
+beeeeeeeeb
+beee+d+heb
+beeejjj+eb
+beeemi++eb
+beej+n::eb
+beej++:+eb
+beej++w+eb
+beeeeeeeeb
+bbbbbbbbbb
+
+
+

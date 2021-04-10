@@ -1,0 +1,329 @@
+title photographer
+author Damien Delmas
+homepage www.puzzlescript.net
+
+========
+OBJECTS
+========
+
+Background
+LIGHTGREEN GREEN
+11111
+01111
+11101
+11111
+10111
+
+
+Horse
+Brown
+
+Pig
+pink
+
+
+Player
+blue
+
+girafe
+yellow
+
+Wall
+BROWN DARKBROWN
+00010
+11111
+01000
+11111
+00010
+
+photo_up
+blue black
+00100
+01110
+11111
+01110
+00100
+
+photo_down
+blue black
+00100
+01110
+11111
+01110
+00100
+
+photo_left
+blue black
+00100
+01110
+11111
+01110
+00100
+
+photo_right
+blue black
+00100
+01110
+11111
+01110
+00100
+
+photo_active
+blue black darkred
+00100
+01210
+12221
+01210
+00100
+
+photo_active_temp
+blue black red
+00100
+01210
+12221
+01210
+00100
+
+camera
+black
+
+camera_1
+black
+
+camera_2
+black
+
+camera_3
+black
+
+camera_4
+black
+
+camera_5
+black
+
+camera_6
+black
+
+camera_7
+black
+
+camera_8
+black
+
+camera_9
+black
+
+camera_10
+black
+
+camera_11
+black
+
+camera_12
+black
+
+photo_m_mid_up
+gray
+
+photo_m_mid_down
+gray
+
+photo_m_mid_left
+gray
+
+photo_m_mid_right
+gray
+
+photo_m_low_up
+gray
+
+photo_m_low_down
+gray
+
+photo_m_low_left
+gray
+
+photo_m_low_right
+gray
+
+photo_m_high_up
+gray
+
+photo_m_high_down
+gray
+
+photo_m_high_left
+gray
+
+photo_m_high_right
+gray
+
+line_1
+blue
+
+line_2
+darkblue
+
+line_3
+green
+
+line_4
+darkgreen
+
+=======
+LEGEND
+=======
+
+. = Background
+# = Wall
+@ = Player
+h = Horse
+p = pig
+g = girafe
+c = camera
+
+cam = camera_1 or camera_2 or camera_3 or camera_4 or camera_5 or camera_6 or camera_7 or camera_8 or camera_9 or camera_10 or camera_11 or camera_12
+
+
+photo_m_low = photo_m_low_up or photo_m_low_down or photo_m_low_left or photo_m_low_right
+photo_m_mid = photo_m_mid_up or photo_m_mid_down or photo_m_mid_left or photo_m_mid_right
+photo_m_high = photo_m_high_up or photo_m_high_down or photo_m_high_left or photo_m_high_right
+
+photo_m = photo_m_low or photo_m_mid or photo_m_high
+
+
+photo_m_up = photo_m_low_up and photo_m_mid_up and photo_m_high_up
+photo_m_down = photo_m_low_down and photo_m_mid_down and photo_m_high_down
+photo_m_right = photo_m_low_right and photo_m_mid_right and photo_m_high_right
+photo_m_left = photo_m_low_left and photo_m_mid_left and photo_m_high_left
+
+photo = photo_up or photo_down or photo_left or photo_right
+
+line = line_1 or line_2 or line_3 or line_4
+
+u = photo_up and photo_active
+d = photo_down
+l = photo_left
+r = photo_right
+
+movable = pig or horse or girafe
+
+movable_high = girafe
+movable_mid = movable_high or horse
+movable_low = movable_mid or pig
+
+
+=======
+SOUNDS
+=======
+
+================
+COLLISIONLAYERS
+================
+
+Background
+camera
+cam
+photo
+photo_m_high
+photo_m_mid
+photo_m_low
+line
+photo_active, photo_active_temp
+Player, Wall,movable
+
+======
+RULES
+======
+
+(camera init)
+right[camera| camera| camera| camera] -> [camera_1| camera_2| camera_3| camera_4]
+up [camera_1 | camera_1 | camera_1] -> [camera_1 | camera_5 | camera_9]
+up [camera_2 | camera_2 | camera_2] -> [camera_2 | camera_6 | camera_10]
+up [camera_3 | camera_3 | camera_3] -> [camera_3 | camera_7 | camera_11]
+up [camera_4 | camera_4 | camera_4] -> [camera_4 | camera_8 | camera_12]
+
+
+
+[ >  Player | movable ] -> [  >  Player | > movable  ]
+
+[action Player] [ photo_down photo_active ] [ photo_left no photo_active ] -> [action Player] [ photo_down photo_active] [ photo_left photo_active_temp ]
+[action Player] [ photo_left photo_active ] [ photo_up no photo_active ] -> [action Player] [ photo_left photo_active] [ photo_up photo_active_temp ]
+[action Player] [ photo_up photo_active ] [ photo_right no photo_active ] -> [action Player] [ photo_up photo_active] [ photo_right photo_active_temp ]
+[action Player] [ photo_right photo_active ] [ photo_down no photo_active ] -> [action Player] [ photo_right photo_active] [ photo_down photo_active_temp ]
+
+[action Player] [photo_active] -> [action Player] []
+[photo_active_temp]-> [photo_active]
+
+(photo up raycast)
+late left [photo_active photo_up| photo_up | photo_up | photo_up ] -> [ photo_active photo_up line_1| photo_up line_2| photo_up line_3| photo_up line_4]
+
+late [photo_up line ] -> [ photo_up photo_m_up line]
+late down [photo_m_low_up no movable_low line| no photo_m_low_up] -> [  line| photo_m_low_up line]
+late down [photo_m_mid_up no movable_mid line| no photo_m_mid_up] -> [  line| photo_m_mid_up line]
+late down [photo_m_high_up no movable_high line| no photo_m_high_up] -> [  line| photo_m_high_up line]
+
+(photo down raycast)
+late right [photo_active photo_down| photo_down | photo_down | photo_down ] -> [ photo_active photo_down line_1| photo_down line_2| photo_down line_3| photo_down line_4]
+
+late [photo_down line ] -> [ photo_down photo_m_down line]
+late up [photo_m_low_down no movable_low line| no photo_m_low_down] -> [  line| photo_m_low_down line]
+late up [photo_m_mid_down no movable_mid line| no photo_m_mid_down] -> [  line| photo_m_mid_down line]
+late up [photo_m_high_down no movable_high line| no photo_m_high_down] -> [  line| photo_m_high_down line]
+
+(photo left raycast)
+late down [photo_active photo_left| photo_left | photo_left | photo_left ] -> [ photo_active photo_left line_1| photo_left line_2| photo_left line_3| photo_left line_4]
+
+late [photo_left line ] -> [ photo_left photo_m_left line]
+late right [photo_m_low_left no movable_low line| no photo_m_low_left] -> [ line| photo_m_low_left line]
+late right [photo_m_mid_left no movable_mid line| no photo_m_mid_left] -> [ line| photo_m_mid_left line]
+late right [photo_m_high_left no movable_high line| no photo_m_high_left] -> [ line| photo_m_high_left line]
+
+
+(photo right raycast)
+late up [photo_active photo_right| photo_right | photo_right | photo_right ] -> [ photo_active photo_right line_1| photo_right line_2| photo_right line_3| photo_right line_4]
+
+late [photo_right line ] -> [ photo_right photo_m_right line]
+late left [photo_m_low_right no movable_low line| no photo_m_low_right] -> [ line| photo_m_low_right line]
+late left [photo_m_mid_right no movable_mid line| no photo_m_mid_right] -> [ line| photo_m_mid_right line]
+late left [photo_m_high_right no movable_high line| no photo_m_high_right] -> [ line| photo_m_high_right line]
+
+late [cam movable] -> [cam]
+late [camera_9 ] [ line_1 movable_high photo_m_high] -> [camera_9 movable_high] [ line_1 movable_high photo_m_high]
+late [camera_10 ] [ line_2 movable_high photo_m_high] -> [camera_10 movable_high] [ line_2 movable_high photo_m_high]
+late [camera_11 ] [ line_3 movable_high photo_m_high] -> [camera_11 movable_high] [ line_3 movable_high photo_m_high]
+late [camera_12 ] [ line_4 movable_high photo_m_high] -> [camera_12 movable_high] [ line_4 movable_high photo_m_high]
+
+late [camera_5 ] [ line_1 movable_mid photo_m_mid] -> [camera_5 movable_mid] [ line_1 movable_mid photo_m_mid]
+late [camera_6 ] [ line_2 movable_mid photo_m_mid] -> [camera_6 movable_mid] [ line_2 movable_mid photo_m_mid]
+late [camera_7 ] [ line_3 movable_mid photo_m_mid] -> [camera_7 movable_mid] [ line_3 movable_mid photo_m_mid]
+late [camera_8 ] [ line_4 movable_mid photo_m_mid] -> [camera_8 movable_mid] [ line_4 movable_mid photo_m_mid]
+
+late [camera_1 ] [ line_1 movable_low photo_m_low] -> [camera_1 movable_low] [ line_1 movable_low photo_m_low]
+late [camera_2 ] [ line_2 movable_low photo_m_low] -> [camera_2 movable_low] [ line_2 movable_low photo_m_low]
+late [camera_3 ] [ line_3 movable_low photo_m_low] -> [camera_3 movable_low] [ line_3 movable_low photo_m_low]
+late [camera_4 ] [ line_4 movable_low photo_m_low] -> [camera_4 movable_low] [ line_4 movable_low photo_m_low]
+
+late [line] -> []
+late [photo_m] -> []
+
+
+==============
+WINCONDITIONS
+==============
+
+No movable
+
+=======
+LEVELS
+=======
+
+..uuuu........
+.######.......
+l#....#r######
+l#@P..#r#cccc#
+l#..h.#r#cccc#
+l#.g..#r#cccc#
+.######.######
+..dddd........
